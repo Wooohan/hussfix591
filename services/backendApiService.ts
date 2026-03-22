@@ -643,3 +643,109 @@ export const deleteFMCSAEntriesBeforeDateFromBackend = async (date: string): Pro
     return { success: false, error: err.message };
   }
 };
+
+// ── New Venture Types & API Functions ──────────────────────────────────────
+
+export interface NewVentureFilters {
+  docketNumber?: string;
+  dotNumber?: string;
+  companyName?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  active?: string;
+  state?: string;
+  hasEmail?: string;
+  carrierOperation?: string;
+  hazmat?: string;
+  powerUnitsMin?: number;
+  powerUnitsMax?: number;
+  driversMin?: number;
+  driversMax?: number;
+  bipdOnFile?: string;
+  cargoOnFile?: string;
+  bondOnFile?: string;
+  limit?: number;
+}
+
+export const fetchNewVenturesFromBackend = async (filters: NewVentureFilters = {}): Promise<any[]> => {
+  try {
+    const params = new URLSearchParams();
+
+    if (filters.docketNumber) params.append('docket_number', filters.docketNumber);
+    if (filters.dotNumber) params.append('dot_number', filters.dotNumber);
+    if (filters.companyName) params.append('company_name', filters.companyName);
+    if (filters.dateFrom) params.append('date_from', filters.dateFrom);
+    if (filters.dateTo) params.append('date_to', filters.dateTo);
+    if (filters.active) params.append('active', filters.active);
+    if (filters.state) params.append('state', filters.state);
+    if (filters.hasEmail) params.append('has_email', filters.hasEmail);
+    if (filters.carrierOperation) params.append('carrier_operation', filters.carrierOperation);
+    if (filters.hazmat) params.append('hazmat', filters.hazmat);
+    if (filters.powerUnitsMin !== undefined) params.append('power_units_min', String(filters.powerUnitsMin));
+    if (filters.powerUnitsMax !== undefined) params.append('power_units_max', String(filters.powerUnitsMax));
+    if (filters.driversMin !== undefined) params.append('drivers_min', String(filters.driversMin));
+    if (filters.driversMax !== undefined) params.append('drivers_max', String(filters.driversMax));
+    if (filters.bipdOnFile) params.append('bipd_on_file', filters.bipdOnFile);
+    if (filters.cargoOnFile) params.append('cargo_on_file', filters.cargoOnFile);
+    if (filters.bondOnFile) params.append('bond_on_file', filters.bondOnFile);
+    if (filters.limit) params.append('limit', String(filters.limit));
+
+    const url = `${BACKEND_URL}/api/new-ventures?${params.toString()}`;
+    const response = await fetch(url, { headers: authHeadersGet() });
+    return await handleResponse(response);
+  } catch (err: any) {
+    console.error('Backend fetch new ventures error:', err);
+    return [];
+  }
+};
+
+export const startNewVentureScrape = async (addedDate: string): Promise<{ success: boolean; scraped?: number; saved?: number; error?: string }> => {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/new-ventures/scrape`, {
+      method: 'POST',
+      headers: authHeaders(),
+      body: JSON.stringify({ added_date: addedDate }),
+    });
+    const data = await handleResponse(response);
+    return { success: true, scraped: data.scraped, saved: data.saved };
+  } catch (err: any) {
+    console.error('Backend scrape new ventures error:', err);
+    return { success: false, error: err.message };
+  }
+};
+
+export const getNewVentureCount = async (): Promise<number> => {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/new-ventures/count`, { headers: authHeadersGet() });
+    const data = await handleResponse(response);
+    return data.count || 0;
+  } catch (err: any) {
+    console.error('Backend new venture count error:', err);
+    return 0;
+  }
+};
+
+export const getNewVentureDates = async (): Promise<string[]> => {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/new-ventures/dates`, { headers: authHeadersGet() });
+    const data = await handleResponse(response);
+    return data.dates || [];
+  } catch (err: any) {
+    console.error('Backend new venture dates error:', err);
+    return [];
+  }
+};
+
+export const deleteNewVenture = async (id: string): Promise<boolean> => {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/new-ventures/${id}`, {
+      method: 'DELETE',
+      headers: authHeadersGet(),
+    });
+    await handleResponse(response);
+    return true;
+  } catch (err: any) {
+    console.error('Backend delete new venture error:', err);
+    return false;
+  }
+};
