@@ -665,6 +665,7 @@ export interface NewVentureFilters {
   cargoOnFile?: string;
   bondOnFile?: string;
   limit?: number;
+  offset?: number;
 }
 
 export const fetchNewVenturesFromBackend = async (filters: NewVentureFilters = {}): Promise<any[]> => {
@@ -689,6 +690,7 @@ export const fetchNewVenturesFromBackend = async (filters: NewVentureFilters = {
     if (filters.cargoOnFile) params.append('cargo_on_file', filters.cargoOnFile);
     if (filters.bondOnFile) params.append('bond_on_file', filters.bondOnFile);
     if (filters.limit) params.append('limit', String(filters.limit));
+    if (filters.offset) params.append('offset', String(filters.offset));
 
     const url = `${BACKEND_URL}/api/new-ventures?${params.toString()}`;
     const response = await fetch(url, { headers: authHeadersGet() });
@@ -733,6 +735,16 @@ export const getNewVentureDates = async (): Promise<string[]> => {
   } catch (err: any) {
     console.error('Backend new venture dates error:', err);
     return [];
+  }
+};
+
+export const fetchNewVentureDetail = async (id: string): Promise<any | null> => {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/new-ventures/detail/${id}`, { headers: authHeadersGet() });
+    return await handleResponse(response);
+  } catch (err: any) {
+    console.error('Backend fetch new venture detail error:', err);
+    return null;
   }
 };
 
