@@ -853,11 +853,11 @@ export const NewVenture: React.FC<NewVentureProps> = ({ user }) => {
                 </tr>
               ) : (
                 ventures.map((v, i) => {
-                  const statusUpper = (v.operating_status || '').toUpperCase();
-                  const isActive = statusUpper.includes('AUTHORIZED') && !statusUpper.includes('NOT') && !statusUpper.includes('PENDING');
+                  const statusUpper = (v.operating_status || '').toUpperCase().trim();
+                  const isActive = (statusUpper.includes('AUTHORIZED') && !statusUpper.includes('NOT') && !statusUpper.includes('PENDING')) || statusUpper === 'ACTIVE';
                   const isPending = statusUpper.includes('PENDING');
                   const statusClass = isActive
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                    ? 'bg-[#10B981]/20 text-[#10B981] border border-[#10B981]/40 font-bold'
                     : isPending
                       ? 'bg-amber-500/10 text-amber-400'
                       : 'bg-red-500/10 text-red-400';
