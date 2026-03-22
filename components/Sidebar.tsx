@@ -1,30 +1,26 @@
 import React from 'react';
-import { LayoutDashboard, Truck, CreditCard, Settings, Terminal, LogOut, ShieldAlert, Database, ShieldCheck } from 'lucide-react';
+import { LayoutDashboard, Truck, CreditCard, Settings, Terminal, LogOut, ShieldAlert, Database, ShieldCheck, Rocket } from 'lucide-react';
 import { ViewState, User } from '../types';
-
 interface SidebarProps {
   currentView: ViewState;
   setCurrentView: (view: ViewState) => void;
   user: User;
   onLogout: () => void;
 }
-
 export const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, user, onLogout }) => {
   const isAdmin = user.role === 'admin';
-
   const allNavItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard, adminOnly: false },
     { id: 'scraper', label: 'Live Scraper', icon: Terminal, adminOnly: true },
     { id: 'carrier-search', label: 'Carrier Database', icon: Database, adminOnly: false },
+    { id: 'new-venture', label: 'New Ventures', icon: Rocket, adminOnly: false },
     { id: 'fmcsa-register', label: 'FMCSA Register', icon: Database, adminOnly: false },
     { id: 'insurance-scraper', label: 'Insurance Scraper', icon: ShieldCheck, adminOnly: true },
     { id: 'subscription', label: 'Subscription', icon: CreditCard, adminOnly: false },
     { id: 'settings', label: 'Settings', icon: Settings, adminOnly: true },
     { id: 'admin', label: 'Admin Panel', icon: ShieldAlert, adminOnly: true },
   ];
-
   const navItems = allNavItems.filter(item => isAdmin || !item.adminOnly);
-
   return (
     <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col h-screen fixed left-0 top-0 z-10">
       <div className="p-6 flex items-center gap-3">
@@ -35,7 +31,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, u
           FreightIntel
         </span>
       </div>
-
       <nav className="flex-1 px-4 space-y-2 mt-4">
         {navItems.map((item) => {
           const Icon = item.icon;
@@ -62,7 +57,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, setCurrentView, u
           );
         })}
       </nav>
-
       <div className="p-4 border-t border-slate-800">
         <div className="bg-slate-800/50 rounded-xl p-4 mb-4">
           <p className="text-xs text-slate-400 mb-1">Logged in as</p>
