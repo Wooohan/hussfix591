@@ -192,7 +192,7 @@ export const NewVenture: React.FC<NewVentureProps> = ({ user }) => {
     active: '',
     states: [] as string[],
     hasEmail: '',
-    carrierOperation: '',
+    carrierOperation: [] as string[],
     hazmat: '',
     powerUnitsMin: '',
     powerUnitsMax: '',
@@ -252,7 +252,7 @@ export const NewVenture: React.FC<NewVentureProps> = ({ user }) => {
     if (filters.active) f.active = filters.active;
     if (filters.states.length > 0) f.state = filters.states.join('|');
     if (filters.hasEmail) f.hasEmail = filters.hasEmail;
-    if (filters.carrierOperation) f.carrierOperation = filters.carrierOperation;
+    if (filters.carrierOperation.length > 0) f.carrierOperation = filters.carrierOperation.join('|');
     if (filters.hazmat) f.hazmat = filters.hazmat;
     if (filters.powerUnitsMin) f.powerUnitsMin = parseInt(filters.powerUnitsMin);
     if (filters.powerUnitsMax) f.powerUnitsMax = parseInt(filters.powerUnitsMax);
@@ -275,7 +275,7 @@ export const NewVenture: React.FC<NewVentureProps> = ({ user }) => {
     setDateTo('');
     setFilters({
       dotNumber: '', active: '', states: [], hasEmail: '',
-      carrierOperation: '', hazmat: '',
+      carrierOperation: [], hazmat: '',
       powerUnitsMin: '', powerUnitsMax: '',
       driversMin: '', driversMax: '',
       bipdOnFile: '', cargoOnFile: '', bondOnFile: '',
@@ -311,6 +311,11 @@ export const NewVenture: React.FC<NewVentureProps> = ({ user }) => {
     setTimeout(() => setCopiedField(null), 2000);
   };
 
+  const hasActiveFilters = !!(docketSearch.trim() || nameSearch.trim() || dateFrom || dateTo ||
+    filters.dotNumber || filters.active || filters.states.length > 0 || filters.hasEmail ||
+    filters.carrierOperation.length > 0 || filters.hazmat || filters.powerUnitsMin || filters.powerUnitsMax ||
+    filters.driversMin || filters.driversMax || filters.bipdOnFile || filters.cargoOnFile || filters.bondOnFile);
+
   const yesNoOptions = [
     { value: '', label: 'Any' },
     { value: 'true', label: 'Yes' },
@@ -320,9 +325,7 @@ export const NewVenture: React.FC<NewVentureProps> = ({ user }) => {
   /* ── Detail Modal ──────────────────────────────────────────────────────── */
 
   const DetailModal: React.FC<{ v: NewVentureData; onClose: () => void }> = ({ v, onClose }) => {
-    const [detailTab, setDetailTab] = useState<'overview' | 'cargo' | 'fleet' | 'safety' | 'raw'>('overview');
-    const [rawData, setRawData] = useState<any>(null);
-    const [loadingRaw, setLoadingRaw] = useState(false);
+    const [detailTab, setDetailTab] = useState<'overview' | 'cargo' | 'fleet' | 'safety' | 'driver'>('overview');
 
     const CopyBtn: React.FC<{ text: string; field: string }> = ({ text, field }) => {
       if (!text || text === '-') return null;
@@ -349,33 +352,44 @@ export const NewVenture: React.FC<NewVentureProps> = ({ user }) => {
     });
 
     return (
-      <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-        <div className="bg-slate-900 border border-slate-700 rounded-3xl w-full max-w-3xl max-h-[85vh] overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
+      <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-sm animate-in fade-in duration-300" onClick={onClose}>
+        <div className="bg-slate-900 border-2 border-slate-700/50 w-full max-w-7xl max-h-[95vh] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col relative animate-in zoom-in slide-in-from-bottom-4 duration-300" onClick={e => e.stopPropagation()}>
           {/* Header */}
-          <div className="bg-gradient-to-r from-indigo-600/20 to-purple-600/20 border-b border-slate-700 px-6 py-5">
-            <div className="flex items-start justify-between">
-              <div>
-                <h2 className="text-xl font-bold text-white">{val(v.name)}</h2>
-                {v.name_dba && <p className="text-slate-400 text-sm mt-0.5">DBA: {v.name_dba}</p>}
-                <div className="flex gap-3 mt-2">
-                  <span className="text-xs bg-slate-800 text-indigo-300 px-2 py-0.5 rounded-full">DOT: {val(v.dot_number)}</span>
-                  <span className="text-xs bg-slate-800 text-indigo-300 px-2 py-0.5 rounded-full">MC: {val(v.docket_number)}</span>
-                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+          <div className="p-4 md:p-5 border-b border-slate-800 bg-slate-850/30 flex justify-between items-start">
+            <div className="flex gap-4 md:gap-6 items-center">
+              <div className="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-indigo-500/10">
+                <Truck size={20} className="md:w-8 md:h-8" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-3 mb-1">
+                  <h2 className="text-lg md:text-2xl font-black text-white uppercase tracking-tighter truncate max-w-[300px] md:max-w-[700px] leading-tight">{val(v.name)}</h2>
+                  <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border-2 ${
                     v.operating_status?.toUpperCase().includes('AUTHORIZED') && !v.operating_status?.toUpperCase().includes('NOT')
-                      ? 'bg-emerald-500/20 text-emerald-300'
-                      : 'bg-red-500/20 text-red-300'
+                      ? 'bg-green-500/10 text-green-400 border-green-500/30'
+                      : 'bg-red-500/10 text-red-400 border-red-500/30'
                   }`}>
-                    {val(v.operating_status)}
+                    {v.operating_status?.toUpperCase().includes('AUTHORIZED') && !v.operating_status?.toUpperCase().includes('NOT') ? 'Active Authority' : val(v.operating_status)}
                   </span>
                 </div>
+                {v.name_dba && <p className="text-slate-400 text-sm">DBA: {v.name_dba}</p>}
+                <div className="flex items-center gap-2 mt-2">
+                  <button onClick={() => handleCopy(v.dot_number || '', 'dot')} className="bg-[#10B981] hover:bg-[#059669] text-white rounded-lg px-3 py-1.5 flex items-center gap-2 transition-all active:scale-95 shadow-md">
+                    <span className="font-black text-[10px] md:text-xs tracking-wide uppercase">DOT {val(v.dot_number)}</span>
+                    {copiedField === 'dot' ? <Check size={12} className="text-white" /> : <Copy size={12} className="text-white/60" />}
+                  </button>
+                  <button onClick={() => handleCopy(v.docket_number || '', 'mc')} className="bg-[#10B981] hover:bg-[#059669] text-white rounded-lg px-3 py-1.5 flex items-center gap-2 transition-all active:scale-95 shadow-md">
+                    <span className="font-black text-[10px] md:text-xs tracking-wide uppercase">MC {val(v.docket_number)}</span>
+                    {copiedField === 'mc' ? <Check size={12} className="text-white" /> : <Copy size={12} className="text-white/60" />}
+                  </button>
+                </div>
               </div>
-              <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors p-1"><X size={20} /></button>
             </div>
+            <button onClick={onClose} className="p-2 text-slate-500 hover:text-white hover:bg-slate-800 rounded-xl transition-all active:scale-75"><X size={24} /></button>
           </div>
 
           {/* Tabs */}
           <div className="flex border-b border-slate-700 px-6">
-            {(['overview', 'cargo', 'fleet', 'safety', 'raw'] as const).map(tab => (
+            {(['overview', 'cargo', 'fleet', 'safety', 'driver'] as const).map(tab => (
               <button
                 key={tab}
                 onClick={() => setDetailTab(tab)}
@@ -385,40 +399,50 @@ export const NewVenture: React.FC<NewVentureProps> = ({ user }) => {
                     : 'border-transparent text-slate-500 hover:text-slate-300'
                 }`}
               >
-                {tab}
+                {tab === 'driver' ? 'Driver' : tab}
               </button>
             ))}
           </div>
 
           {/* Content */}
-          <div className="p-6 overflow-y-auto max-h-[55vh] custom-scrollbar">
+          <div className="flex-1 overflow-y-auto p-6 md:p-10 custom-scrollbar bg-slate-900/40">
             {detailTab === 'overview' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-1">
-                <div>
-                  <h3 className="text-xs font-bold text-indigo-400 uppercase mb-2 mt-2">Company Info</h3>
-                  <InfoRow label="Legal Name" value={v.name || ''} copyKey="name" />
-                  <InfoRow label="DBA Name" value={v.name_dba || ''} />
-                  <InfoRow label="DOT Number" value={v.dot_number || ''} copyKey="dot" />
-                  <InfoRow label="Docket (MC#)" value={v.docket_number || ''} copyKey="mc" />
-                  <InfoRow label="Status" value={v.operating_status || ''} />
-                  <InfoRow label="Carrier Operation" value={v.carrier_operation || ''} />
-                  <InfoRow label="Add Date" value={v.add_date || ''} />
-                  <InfoRow label="Officer 1" value={v.company_officer_1 || ''} />
-                  <InfoRow label="Officer 2" value={v.company_officer_2 || ''} />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                <div className="bg-slate-850/60 p-6 rounded-3xl border border-slate-700/50 space-y-4 shadow-lg group">
+                  <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 mb-1 group-hover:text-indigo-400 transition-colors">
+                    <Hash size={14} className="text-indigo-400" /> Company Info
+                  </h3>
+                  <div className="space-y-3">
+                    <InfoRow label="Legal Name" value={v.name || ''} copyKey="name" />
+                    <InfoRow label="DBA Name" value={v.name_dba || ''} />
+                    <InfoRow label="DOT Number" value={v.dot_number || ''} copyKey="dot" />
+                    <InfoRow label="Docket (MC#)" value={v.docket_number || ''} copyKey="mc" />
+                    <InfoRow label="Status" value={v.operating_status || ''} />
+                    <InfoRow label="Carrier Operation" value={v.carrier_operation || ''} />
+                    <InfoRow label="Add Date" value={v.add_date || ''} />
+                    <InfoRow label="Officer 1" value={v.company_officer_1 || ''} />
+                    <InfoRow label="Officer 2" value={v.company_officer_2 || ''} />
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-xs font-bold text-indigo-400 uppercase mb-2 mt-2">Contact & Location</h3>
-                  <InfoRow label="Phone" value={v.phy_phone || ''} copyKey="phone" />
-                  <InfoRow label="Cell" value={v.cell_phone || ''} copyKey="cell" />
-                  <InfoRow label="Email" value={v.email_address || ''} copyKey="email" />
-                  <InfoRow label="Physical Address" value={[v.phy_str, v.phy_city, v.phy_st, v.phy_zip].filter(Boolean).join(', ')} copyKey="addr" />
-                  <InfoRow label="Mailing Address" value={[v.mai_str, v.mai_city, v.mai_st, v.mai_zip].filter(Boolean).join(', ')} />
-                  <InfoRow label="County" value={v.phy_cnty || ''} />
-                  <InfoRow label="Country" value={v.phy_country || ''} />
+                <div className="bg-slate-850/60 p-6 rounded-3xl border border-slate-700/50 space-y-4 shadow-lg group">
+                  <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 mb-1 group-hover:text-indigo-400 transition-colors">
+                    <Phone size={14} className="text-indigo-400" /> Contact & Location
+                  </h3>
+                  <div className="space-y-3">
+                    <InfoRow label="Phone" value={v.phy_phone || ''} copyKey="phone" />
+                    <InfoRow label="Cell" value={v.cell_phone || ''} copyKey="cell" />
+                    <InfoRow label="Email" value={v.email_address || ''} copyKey="email" />
+                    <InfoRow label="Physical Address" value={[v.phy_str, v.phy_city, v.phy_st, v.phy_zip].filter(Boolean).join(', ')} copyKey="addr" />
+                    <InfoRow label="Mailing Address" value={[v.mai_str, v.mai_city, v.mai_st, v.mai_zip].filter(Boolean).join(', ')} />
+                    <InfoRow label="County" value={v.phy_cnty || ''} />
+                    <InfoRow label="Country" value={v.phy_country || ''} />
+                  </div>
                 </div>
-                <div className="md:col-span-2">
-                  <h3 className="text-xs font-bold text-indigo-400 uppercase mb-2 mt-4">Insurance</h3>
-                  <div className="grid grid-cols-3 gap-4">
+                <div className="bg-slate-850/60 p-6 rounded-3xl border border-slate-700/50 space-y-4 shadow-lg group">
+                  <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 mb-1 group-hover:text-indigo-400 transition-colors">
+                    <Shield size={14} className="text-indigo-400" /> Insurance
+                  </h3>
+                  <div className="space-y-3">
                     <InfoRow label="BIPD Required" value={v.bipd_req || ''} />
                     <InfoRow label="BIPD On File" value={v.bipd_file || ''} />
                     <InfoRow label="Cargo Required" value={v.cargo_req || ''} />
@@ -498,32 +522,85 @@ export const NewVenture: React.FC<NewVentureProps> = ({ user }) => {
               </div>
             )}
 
-            {detailTab === 'raw' && (
-              <div>
-                <p className="text-xs text-slate-500 mb-3">Full raw data from BrokerSnapshot CSV export:</p>
-                {!rawData && !loadingRaw && v.id && (
-                  <button
-                    onClick={async () => {
-                      setLoadingRaw(true);
-                      const detail = await fetchNewVentureDetail(v.id!);
-                      setRawData(detail?.raw_data || detail || v);
-                      setLoadingRaw(false);
-                    }}
-                    className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-sm font-bold transition-all mb-3"
-                  >
-                    Load Raw Data
-                  </button>
-                )}
-                {loadingRaw && (
-                  <div className="flex items-center gap-2 text-slate-400 text-sm py-4">
-                    <Loader2 size={16} className="animate-spin" /> Loading raw data...
+            {detailTab === 'driver' && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-slate-850/40 p-8 rounded-[2rem] border border-slate-800 flex flex-col gap-6 shadow-2xl">
+                  <div className="flex items-center gap-3">
+                    <Truck size={20} className="text-indigo-400" />
+                    <h4 className="text-xl font-black text-white uppercase tracking-tight">Interstate Drivers</h4>
                   </div>
-                )}
-                {(rawData || v.raw_data) && (
-                  <pre className="bg-slate-950 border border-slate-800 rounded-xl p-4 text-xs text-slate-300 overflow-auto max-h-[40vh] custom-scrollbar">
-                    {JSON.stringify(rawData || v.raw_data || v, null, 2)}
-                  </pre>
-                )}
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="bg-slate-900/50 border border-slate-800 p-3 rounded-xl flex flex-col items-center">
+                        <span className="text-[9px] text-slate-500 font-black uppercase mb-1">Within 100 mi</span>
+                        <span className="text-lg font-black text-white">{val(v.inter_drivers_within100)}</span>
+                      </div>
+                      <div className="bg-slate-900/50 border border-slate-800 p-3 rounded-xl flex flex-col items-center">
+                        <span className="text-[9px] text-slate-500 font-black uppercase mb-1">Beyond 100 mi</span>
+                        <span className="text-lg font-black text-white">{val(v.inter_drivers_beyond100)}</span>
+                      </div>
+                      <div className="bg-indigo-500/10 border border-indigo-500/20 p-3 rounded-xl flex flex-col items-center">
+                        <span className="text-[9px] text-indigo-400 font-black uppercase mb-1">Interstate Total</span>
+                        <span className="text-lg font-black text-indigo-300">{val(v.inter_drivers_total)}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="h-px bg-slate-800/50" />
+                  <div className="flex items-center gap-3">
+                    <Truck size={20} className="text-indigo-400" />
+                    <h4 className="text-xl font-black text-white uppercase tracking-tight">Intrastate Drivers</h4>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="bg-slate-900/50 border border-slate-800 p-3 rounded-xl flex flex-col items-center">
+                        <span className="text-[9px] text-slate-500 font-black uppercase mb-1">Within 100 mi</span>
+                        <span className="text-lg font-black text-white">{val(v.intra_drivers_within100)}</span>
+                      </div>
+                      <div className="bg-slate-900/50 border border-slate-800 p-3 rounded-xl flex flex-col items-center">
+                        <span className="text-[9px] text-slate-500 font-black uppercase mb-1">Beyond 100 mi</span>
+                        <span className="text-lg font-black text-white">{val(v.intra_drivers_beyond100)}</span>
+                      </div>
+                      <div className="bg-indigo-500/10 border border-indigo-500/20 p-3 rounded-xl flex flex-col items-center">
+                        <span className="text-[9px] text-indigo-400 font-black uppercase mb-1">Intrastate Total</span>
+                        <span className="text-lg font-black text-indigo-300">{val(v.intra_drivers_total)}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-slate-850/40 p-8 rounded-[2rem] border border-slate-800 flex flex-col gap-6 shadow-2xl">
+                  <div className="flex items-center gap-3">
+                    <Activity size={20} className="text-emerald-400" />
+                    <h4 className="text-xl font-black text-white uppercase tracking-tight">Driver Summary</h4>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-slate-900/50 border border-slate-800 p-4 rounded-xl flex flex-col items-center">
+                        <span className="text-[9px] text-slate-500 font-black uppercase mb-1">Avg Leased Drivers/Month</span>
+                        <span className="text-2xl font-black text-white">{val(v.avg_leased_drivers_month)}</span>
+                      </div>
+                      <div className="bg-emerald-500/10 border border-emerald-500/20 p-4 rounded-xl flex flex-col items-center">
+                        <span className="text-[9px] text-emerald-400 font-black uppercase mb-1">Grand Total</span>
+                        <span className="text-2xl font-black text-emerald-300">{val(v.grand_total_drivers)}</span>
+                      </div>
+                    </div>
+                    <div className="h-px bg-slate-800/50" />
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-slate-900/50 border border-slate-800 p-4 rounded-xl flex flex-col items-center">
+                        <span className="text-[9px] text-slate-500 font-black uppercase mb-1">Total with CDL</span>
+                        <span className="text-2xl font-black text-white">{val(v.total_cdl_drivers)}</span>
+                      </div>
+                      <div className="bg-slate-900/50 border border-slate-800 p-4 rounded-xl flex flex-col items-center">
+                        <span className="text-[9px] text-slate-500 font-black uppercase mb-1">Total with Non-CDL</span>
+                        <span className="text-2xl font-black text-white">{val(v.total_non_cdl_drivers)}</span>
+                      </div>
+                    </div>
+                    <div className="h-px bg-slate-800/50" />
+                    <div className="bg-slate-900/50 border border-slate-800 p-4 rounded-xl flex flex-col items-center">
+                      <span className="text-[9px] text-slate-500 font-black uppercase mb-1">Total Drivers (from record)</span>
+                      <span className="text-2xl font-black text-white">{val(v.total_drivers)}</span>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -542,8 +619,7 @@ export const NewVenture: React.FC<NewVentureProps> = ({ user }) => {
           <h1 className="text-2xl md:text-3xl font-extrabold text-white mb-1 tracking-tight">New Ventures</h1>
           <p className="text-slate-400 text-sm">
             Showing <span className="text-indigo-400 font-bold">{ventures.length}</span> records
-            {totalCount > 0 && <span className="text-slate-500"> of {totalCount.toLocaleString()} total</span>}
-            {ventures.length === 200 && !isLoading && <span className="text-slate-500"> (default 200 — use filters to search all)</span>}
+            {ventures.length === 200 && !hasActiveFilters && !isLoading && <span className="text-slate-500"> of {totalCount.toLocaleString()} total (default 200 — use filters to search all)</span>}
           </p>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
@@ -628,7 +704,7 @@ export const NewVenture: React.FC<NewVentureProps> = ({ user }) => {
           />
         </div>
 
-        <div className="flex-1 relative group">
+        <div className="w-1/2 relative group">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-indigo-400 transition-colors">
             <Search size={18} />
           </div>
@@ -642,90 +718,106 @@ export const NewVenture: React.FC<NewVentureProps> = ({ user }) => {
           />
         </div>
 
-        {/* Date Range */}
-        <div className="flex items-center gap-2 shrink-0">
-          <div className="relative">
-            <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
-            <input
-              type="date"
-              value={dateFrom}
-              onChange={(e) => setDateFrom(e.target.value)}
-              placeholder="From"
-              className="bg-slate-850/80 border border-slate-700/50 rounded-2xl pl-9 pr-3 py-3 text-white text-sm focus:border-indigo-500 outline-none w-40"
-            />
-          </div>
-          <span className="text-slate-600 text-sm">to</span>
-          <div className="relative">
-            <Calendar size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
-            <input
-              type="date"
-              value={dateTo}
-              onChange={(e) => setDateTo(e.target.value)}
-              placeholder="To"
-              className="bg-slate-850/80 border border-slate-700/50 rounded-2xl pl-9 pr-3 py-3 text-white text-sm focus:border-indigo-500 outline-none w-40"
-            />
-          </div>
-        </div>
-
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`shrink-0 flex items-center gap-2 px-4 py-3 rounded-2xl text-sm font-bold transition-all border ${
-            showFilters
-              ? 'bg-indigo-600/20 text-indigo-400 border-indigo-500/30'
-              : 'bg-slate-850/80 text-slate-400 border-slate-700/50 hover:text-white hover:border-slate-600'
-          }`}
+          className={`px-5 py-3 rounded-2xl font-bold transition-all flex items-center gap-2 border text-sm ${showFilters ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'}`}
         >
-          <Filter size={16} /> Filters
+          <Zap size={16} className={showFilters ? 'fill-white' : ''} />
+          {showFilters ? 'Hide Filters' : 'Advanced Filters'}
         </button>
 
         <button
           onClick={applyFilters}
-          className="shrink-0 px-6 py-3 bg-indigo-600 hover:bg-indigo-500 text-white rounded-2xl text-sm font-bold transition-all shadow-lg shadow-indigo-500/20 active:scale-95"
+          disabled={isLoading}
+          className="px-7 py-3 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white rounded-2xl font-bold transition-all shadow-lg shadow-indigo-500/20 active:scale-95 flex items-center gap-2 text-sm"
         >
-          Search
+          {isLoading ? (
+            <><Loader2 size={16} className="animate-spin" /> Searching...</>
+          ) : (
+            <><Search size={16} /> Search</>
+          )}
         </button>
       </div>
 
-      {/* Expandable Filters */}
+      {/* Expandable Filters - Carrier Database style */}
       {showFilters && (
-        <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-3 animate-in slide-in-from-top-2">
-          <FilterGroup title="Identification" icon={<Hash size={12} />}>
-            <FilterLabel>DOT Number</FilterLabel>
-            <input type="text" name="dotNumber" value={filters.dotNumber} onChange={handleFilterChange}
-              placeholder="DOT#" className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-indigo-500" />
-            <FilterLabel>Operating Status</FilterLabel>
-            <FilterSelect name="active" value={filters.active} onChange={handleFilterChange}
-              options={[{ value: '', label: 'Any' }, { value: 'true', label: 'Authorized' }, { value: 'false', label: 'Not Authorized' }]} />
-            <FilterLabel>Has Email</FilterLabel>
-            <FilterSelect name="hasEmail" value={filters.hasEmail} onChange={handleFilterChange} options={yesNoOptions} />
-          </FilterGroup>
+        <div className="mb-4 p-4 bg-slate-950/80 border border-slate-700/50 rounded-3xl overflow-y-auto max-h-[55vh] custom-scrollbar">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <FilterGroup title="Motor Carrier" icon={<Truck size={12} />}>
+              <div>
+                <FilterLabel>Active</FilterLabel>
+                <FilterSelect name="active" value={filters.active} onChange={handleFilterChange} options={yesNoOptions} />
+              </div>
+              <div>
+                <FilterLabel>State</FilterLabel>
+                <MultiSelect options={US_STATES} selected={filters.states} onChange={vals => setFilters(f => ({ ...f, states: vals }))} placeholder="All" />
+              </div>
+              <div>
+                <FilterLabel>DOT Number</FilterLabel>
+                <input type="number" name="dotNumber" value={filters.dotNumber} onChange={handleFilterChange} placeholder="" min={0}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-indigo-500" />
+              </div>
+              <div>
+                <FilterLabel>Has Email</FilterLabel>
+                <FilterSelect name="hasEmail" value={filters.hasEmail} onChange={handleFilterChange} options={yesNoOptions} />
+              </div>
+            </FilterGroup>
 
-          <FilterGroup title="Operations" icon={<Truck size={12} />}>
-            <FilterLabel>Carrier Operation</FilterLabel>
-            <FilterSelect name="carrierOperation" value={filters.carrierOperation} onChange={handleFilterChange}
-              options={[{ value: '', label: 'Any' }, ...CARRIER_OPERATIONS.map(o => ({ value: o, label: o }))]} />
-            <FilterLabel>HazMat</FilterLabel>
-            <FilterSelect name="hazmat" value={filters.hazmat} onChange={handleFilterChange} options={yesNoOptions} />
-            <FilterLabel>State</FilterLabel>
-            <MultiSelect options={US_STATES} selected={filters.states} onChange={vals => setFilters(f => ({ ...f, states: vals }))} placeholder="All States" />
-          </FilterGroup>
+            <FilterGroup title="Carrier Operation" icon={<Activity size={12} />}>
+              <div>
+                <FilterLabel>Carrier Operation</FilterLabel>
+                <MultiSelect options={CARRIER_OPERATIONS} selected={filters.carrierOperation} onChange={vals => setFilters(f => ({ ...f, carrierOperation: vals }))} placeholder="All" />
+              </div>
+              <div>
+                <FilterLabel>Hazmat</FilterLabel>
+                <FilterSelect name="hazmat" value={filters.hazmat} onChange={handleFilterChange} options={yesNoOptions} />
+              </div>
+              <div>
+                <FilterLabel>Power Units</FilterLabel>
+                <MinMaxInputs nameMin="powerUnitsMin" nameMax="powerUnitsMax" valueMin={filters.powerUnitsMin} valueMax={filters.powerUnitsMax} onChange={handleFilterChange} />
+              </div>
+              <div>
+                <FilterLabel>Drivers</FilterLabel>
+                <MinMaxInputs nameMin="driversMin" nameMax="driversMax" valueMin={filters.driversMin} valueMax={filters.driversMax} onChange={handleFilterChange} />
+              </div>
+            </FilterGroup>
 
-          <FilterGroup title="Fleet & Insurance" icon={<Shield size={12} />}>
-            <FilterLabel>Power Units</FilterLabel>
-            <MinMaxInputs nameMin="powerUnitsMin" nameMax="powerUnitsMax" valueMin={filters.powerUnitsMin} valueMax={filters.powerUnitsMax} onChange={handleFilterChange} />
-            <FilterLabel>Drivers</FilterLabel>
-            <MinMaxInputs nameMin="driversMin" nameMax="driversMax" valueMin={filters.driversMin} valueMax={filters.driversMax} onChange={handleFilterChange} />
-            <FilterLabel>BIPD On File</FilterLabel>
-            <FilterSelect name="bipdOnFile" value={filters.bipdOnFile} onChange={handleFilterChange} options={yesNoOptions} />
-            <FilterLabel>Cargo On File</FilterLabel>
-            <FilterSelect name="cargoOnFile" value={filters.cargoOnFile} onChange={handleFilterChange} options={yesNoOptions} />
-            <FilterLabel>Bond On File</FilterLabel>
-            <FilterSelect name="bondOnFile" value={filters.bondOnFile} onChange={handleFilterChange} options={yesNoOptions} />
-          </FilterGroup>
+            <FilterGroup title="Insurance Policy" icon={<Shield size={12} />}>
+              <div>
+                <FilterLabel>Has BIPD Insurance</FilterLabel>
+                <FilterSelect name="bipdOnFile" value={filters.bipdOnFile} onChange={handleFilterChange} options={yesNoOptions} />
+              </div>
+              <div>
+                <FilterLabel>Has Cargo Insurance</FilterLabel>
+                <FilterSelect name="cargoOnFile" value={filters.cargoOnFile} onChange={handleFilterChange} options={yesNoOptions} />
+              </div>
+              <div>
+                <FilterLabel>Has Bond Insurance</FilterLabel>
+                <FilterSelect name="bondOnFile" value={filters.bondOnFile} onChange={handleFilterChange} options={yesNoOptions} />
+              </div>
+            </FilterGroup>
 
-          <div className="md:col-span-3 flex justify-end">
-            <button onClick={resetAll} className="px-4 py-2 text-sm text-slate-400 hover:text-white transition-colors">
-              Clear All Filters
+            <FilterGroup title="Date Range" icon={<Calendar size={12} />}>
+              <div>
+                <FilterLabel>From Date</FilterLabel>
+                <input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-indigo-500" />
+              </div>
+              <div>
+                <FilterLabel>To Date</FilterLabel>
+                <input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-indigo-500" />
+              </div>
+            </FilterGroup>
+          </div>
+
+          <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-slate-800">
+            <button onClick={resetAll} className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-bold transition-all border border-slate-700">
+              Reset All
+            </button>
+            <button onClick={applyFilters} disabled={isLoading}
+              className="px-8 py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-60 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-indigo-500/20 flex items-center gap-2">
+              {isLoading ? <><Loader2 size={14} className="animate-spin" /> Searching...</> : 'Apply Filters'}
             </button>
           </div>
         </div>
