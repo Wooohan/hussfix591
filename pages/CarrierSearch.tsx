@@ -1,16 +1,12 @@
-import React, { useState } from 'react';
-import { Search, Eye, X, MapPin, Phone, Mail, Hash, Truck, Calendar, ShieldCheck, Download, ShieldAlert, Activity, Info, Globe, Map as MapIcon, Boxes, Shield, ExternalLink, CheckCircle2, AlertTriangle, Zap, Loader2, ChevronDown, ChevronUp, Copy, Check } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Search, Eye, X, MapPin, Phone, Mail, Hash, Truck, Calendar, ShieldCheck, Download, ShieldAlert, Activity, Info, Globe, Map as MapIcon, Boxes, Shield, ExternalLink, CheckCircle2, AlertTriangle, Zap, Loader2, ChevronDown, ChevronUp, Copy, Check, Database } from 'lucide-react';
 import { CarrierData } from '../types';
 import { downloadCSV } from '../services/mockService';
 import { CarrierFilters } from '../services/backendApiService';
-
+import { fetchCarriersFromSupabase, getCarrierCountFromSupabase, CarrierFiltersSupabase } from '../services/supabaseClient';
 interface CarrierSearchProps {
-  carriers: CarrierData[];
-  onSearch: (filters: CarrierFilters) => void;
-  isLoading: boolean;
   onNavigateToInsurance: () => void;
 }
-
 const US_STATES = [
   'AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA',
   'HI','ID','IL','IN','IA','KS','KY','LA','ME','MD',
@@ -18,17 +14,14 @@ const US_STATES = [
   'NM','NY','NC','ND','OH','OK','OR','PA','RI','SC',
   'SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC'
 ];
-
 const OPERATION_CLASSIFICATIONS = [
   'Auth. For Hire','Exempt For Hire','Private(Property)',
   'Private(Passenger)','Migrant','U.S. Mail','Federal Government',
   'State Government','Local Government','Indian Tribe'
 ];
-
 const CARRIER_OPERATIONS = [
   'Interstate','Intrastate Only (HM)','Intrastate Only (Non-HM)'
 ];
-
 const CARGO_TYPES = [
   'General Freight','Household Goods','Metal: Sheets, Coils, Rolls',
   'Motor Vehicles','Drive/Tow Away','Logs, Poles, Beams, Lumber',
@@ -41,9 +34,7 @@ const CARGO_TYPES = [
   'Paper Products','Utilities','Agricultural/Farm Supplies',
   'Construction','Water Well','Other'
 ];
-
 const INSURANCE_REQUIRED_TYPES = ['BI&PD','CARGO','BOND'];
-
 const calculateYearsInBusiness = (mcs150Date: string | undefined): number | null => {
   if (!mcs150Date || mcs150Date === 'N/A') return null;
   try {
@@ -56,7 +47,6 @@ const calculateYearsInBusiness = (mcs150Date: string | undefined): number | null
     return null;
   }
 };
-
 const MultiSelect: React.FC<{
   options: string[];
   selected: string[];
@@ -97,7 +87,6 @@ const MultiSelect: React.FC<{
     </div>
   );
 };
-
 const FilterGroup: React.FC<{ title: string; icon: React.ReactNode; children: React.ReactNode }> = ({ title, icon, children }) => {
   const [open, setOpen] = useState(true);
   return (
@@ -116,17 +105,14 @@ const FilterGroup: React.FC<{ title: string; icon: React.ReactNode; children: Re
     </div>
   );
 };
-
 const FilterLabel: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <label className="block text-[10px] font-bold text-slate-500 uppercase mb-1 ml-1">{children}</label>
 );
-
 const FilterSelect: React.FC<{ name: string; value: string; onChange: (e: React.ChangeEvent<HTMLSelectElement>) => void; options: { value: string; label: string }[] }> = ({ name, value, onChange, options }) => (
   <select name={name} value={value} onChange={onChange} className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-indigo-500">
     {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
   </select>
 );
-
 const MinMaxInputs: React.FC<{
   nameMin: string; nameMax: string;
   valueMin: string; valueMax: string;
@@ -139,17 +125,22 @@ const MinMaxInputs: React.FC<{
       className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-indigo-500" />
   </div>
 );
-
-export const CarrierSearch: React.FC<CarrierSearchProps> = ({ carriers, onSearch, isLoading, onNavigateToInsurance }) => {
+export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsurance }) => {
+  
+  const [carriers, setCarriers] = useState<CarrierData[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [filteredCount, setFilteredCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  
+  const PAGE_SIZE = 200;
+  const [currentPage, setCurrentPage] = useState(0);
   const [mcSearchTerm, setMcSearchTerm] = useState('');
   const [nameSearchTerm, setNameSearchTerm] = useState('');
   const [selectedDot, setSelectedDot] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
-
   const [activeTab, setActiveTab] = useState<'inspections' | 'crashes'>('inspections');
   const [expandedInspection, setExpandedInspection] = useState<string | null>(null);
-
   const [filters, setFilters] = useState({
     active: '',
     state: [] as string[],
@@ -180,20 +171,33 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ carriers, onSearch
     towawayMin: '', towawayMax: '',
     inspectionsMin: '', inspectionsMax: '',
   });
-
   const handleCopy = (text: string, field: string) => {
     navigator.clipboard.writeText(text);
     setCopiedField(field);
     setTimeout(() => setCopiedField(null), 2000);
   };
-
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFilters(prev => ({ ...prev, [name]: value }));
   };
-
-  const buildFilters = (): CarrierFilters => {
-    const f: CarrierFilters = {};
+  
+  useEffect(() => {
+    getCarrierCountFromSupabase().then(setTotalCount);
+    loadCarriers({});
+  }, []);
+  const loadCarriers = async (f: CarrierFiltersSupabase, page = 0) => {
+    setIsLoading(true);
+    try {
+      const result = await fetchCarriersFromSupabase({ ...f, limit: PAGE_SIZE, offset: page * PAGE_SIZE });
+      setCarriers(result.data);
+      setCurrentPage(page);
+      setFilteredCount(result.filtered_count);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  const buildFilters = useCallback((): CarrierFiltersSupabase => {
+    const f: CarrierFiltersSupabase = {};
     if (mcSearchTerm.trim()) f.mcNumber = mcSearchTerm.trim();
     if (nameSearchTerm.trim()) f.legalName = nameSearchTerm.trim();
     if (filters.dot.trim()) f.dotNumber = filters.dot.trim();
@@ -224,7 +228,6 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ carriers, onSearch
     if (filters.towawayMax !== '') f.towawayMax = parseInt(filters.towawayMax);
     if (filters.inspectionsMin !== '') f.inspectionsMin = parseInt(filters.inspectionsMin);
     if (filters.inspectionsMax !== '') f.inspectionsMax = parseInt(filters.inspectionsMax);
-
     if (filters.classification.length > 0) f.classification = filters.classification;
     if (filters.carrierOperation.length > 0) f.carrierOperation = filters.carrierOperation;
     if (filters.hazmat) f.hazmat = filters.hazmat;
@@ -235,12 +238,9 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ carriers, onSearch
     if (filters.bondOnFile) f.bondOnFile = filters.bondOnFile;
     
     return f;
-  };
-
-  const applyFilters = () => {
-    onSearch(buildFilters());
-  };
-
+  }, [mcSearchTerm, nameSearchTerm, filters]);
+  const applyFilters = () => loadCarriers(buildFilters(), 0);
+  const goToPage = (page: number) => loadCarriers(buildFilters(), page);
   const resetAll = () => {
     setMcSearchTerm('');
     setNameSearchTerm('');
@@ -254,23 +254,19 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ carriers, onSearch
       injuriesMin: '', injuriesMax: '', fatalitiesMin: '', fatalitiesMax: '',
       towawayMin: '', towawayMax: '', inspectionsMin: '', inspectionsMax: '',
     });
-    onSearch({});
+    loadCarriers({}, 0);
   };
-
   const selectedCarrier = selectedDot ? carriers.find(c => c.dotNumber === selectedDot) : null;
-
   const yesNoOptions = [
     { value: '', label: 'Any' },
     { value: 'true', label: 'Yes' },
     { value: 'false', label: 'No' },
   ];
-
   const yesNoNumOptions = [
     { value: '', label: 'Any' },
     { value: '1', label: 'Yes' },
     { value: '0', label: 'No' },
   ];
-
   return (
     <div className="p-4 md:p-8 h-screen flex flex-col overflow-hidden relative selection:bg-indigo-500/30">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 gap-4">
@@ -278,7 +274,7 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ carriers, onSearch
           <h1 className="text-2xl md:text-3xl font-extrabold text-white mb-1 tracking-tight">Carrier Database</h1>
           <p className="text-slate-400 text-sm">
             Showing <span className="text-indigo-400 font-bold">{carriers.length}</span> records
-            {carriers.length === 200 && <span className="text-slate-500"> (default 200 — use filters to search all)</span>}
+            {totalCount > 0 && <span className="text-slate-500"> of {totalCount.toLocaleString()} total</span>}
           </p>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
@@ -297,7 +293,6 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ carriers, onSearch
           </button>
         </div>
       </div>
-
       <div className="flex gap-3 mb-4">
         <div className="relative group w-52 shrink-0">
           <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-500 group-focus-within:text-indigo-400 transition-colors">
@@ -312,7 +307,6 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ carriers, onSearch
             onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
           />
         </div>
-
         <div className="flex-1 relative group">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none text-slate-500 group-focus-within:text-indigo-400 transition-colors">
             <Search size={18} />
@@ -326,7 +320,6 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ carriers, onSearch
             onKeyDown={(e) => e.key === 'Enter' && applyFilters()}
           />
         </div>
-
         <button
           onClick={() => setShowFilters(!showFilters)}
           className={`px-5 py-3 rounded-2xl font-bold transition-all flex items-center gap-2 border text-sm ${showFilters ? 'bg-indigo-600 text-white border-indigo-500' : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'}`}
@@ -334,7 +327,6 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ carriers, onSearch
           <Zap size={16} className={showFilters ? 'fill-white' : ''} />
           {showFilters ? 'Hide Filters' : 'Advanced Filters'}
         </button>
-
         <button
           onClick={applyFilters}
           disabled={isLoading}
@@ -347,7 +339,6 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ carriers, onSearch
           )}
         </button>
       </div>
-
       {showFilters && (
         <div className="mb-4 p-4 bg-slate-950/80 border border-slate-700/50 rounded-3xl overflow-y-auto max-h-[55vh] custom-scrollbar">
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -383,7 +374,6 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ carriers, onSearch
                 <FilterSelect name="hasCompanyRep" value={filters.hasCompanyRep} onChange={handleFilterChange} options={yesNoOptions} />
               </div>
             </FilterGroup>
-
             <FilterGroup title="Carrier Operation" icon={<Activity size={12} />}>
               <div>
                 <FilterLabel>Classification</FilterLabel>
@@ -412,7 +402,6 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ carriers, onSearch
                 <MultiSelect options={CARGO_TYPES} selected={filters.cargo} onChange={v => setFilters(p => ({ ...p, cargo: v }))} placeholder="All" />
               </div>
             </FilterGroup>
-
             <FilterGroup title="Insurance Policy" icon={<Shield size={12} />}>
               <div>
                 <FilterLabel>Required</FilterLabel>
@@ -436,7 +425,6 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ carriers, onSearch
                 <FilterSelect name="bondOnFile" value={filters.bondOnFile} onChange={handleFilterChange} options={yesNoNumOptions} />
               </div>
             </FilterGroup>
-
             <FilterGroup title="Safety" icon={<ShieldCheck size={12} />}>
               <div>
                 <FilterLabel>OOS Violations</FilterLabel>
@@ -464,7 +452,6 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ carriers, onSearch
               </div>
             </FilterGroup>
           </div>
-
           <div className="flex justify-end gap-3 mt-4 pt-4 border-t border-slate-800">
             <button onClick={resetAll} className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-bold transition-all border border-slate-700">
               Reset All
@@ -476,7 +463,6 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ carriers, onSearch
           </div>
         </div>
       )}
-
       <div className="flex-1 bg-slate-900/40 border border-slate-700/50 rounded-3xl overflow-hidden flex flex-col shadow-inner min-h-0">
         <div className="overflow-auto custom-scrollbar flex-1">
           <table className="w-full text-left text-sm text-slate-300">
@@ -490,9 +476,19 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ carriers, onSearch
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/50">
-              {!isLoading && carriers.length === 0 ? (
+              {isLoading ? (
                 <tr>
-                  <td colSpan={5} className="p-16 text-center text-slate-600 italic">No results found matching your search criteria.</td>
+                  <td colSpan={5} className="text-center py-20">
+                    <Loader2 className="w-8 h-8 text-indigo-400 animate-spin mx-auto mb-3" />
+                    <p className="text-slate-400 text-sm">Loading carriers...</p>
+                  </td>
+                </tr>
+              ) : carriers.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="text-center py-20">
+                    <Database className="w-10 h-10 text-slate-700 mx-auto mb-3" />
+                    <p className="text-slate-500 text-sm">No results found. Try adjusting your filters.</p>
+                  </td>
                 </tr>
               ) : (
                 carriers.map((carrier, idx) => (
@@ -522,11 +518,33 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ carriers, onSearch
           </table>
         </div>
       </div>
-
+      
+      {!isLoading && carriers.length > 0 && (
+        <div className="flex items-center justify-between mt-3 px-2">
+          <p className="text-xs text-white font-bold">
+            Page {currentPage + 1} · Showing {currentPage * PAGE_SIZE + 1}–{currentPage * PAGE_SIZE + carriers.length}{filteredCount > 0 ? ` of ${filteredCount.toLocaleString()}` : (totalCount > 0 ? ` of ${totalCount.toLocaleString()}` : '')}
+          </p>
+          <div className="flex gap-2">
+            <button
+              onClick={() => goToPage(currentPage - 1)}
+              disabled={currentPage === 0}
+              className="px-3 py-1.5 text-xs font-bold rounded-xl bg-slate-800 text-white border border-slate-700 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              Prev
+            </button>
+            <button
+              onClick={() => goToPage(currentPage + 1)}
+              disabled={carriers.length < PAGE_SIZE}
+              className="px-3 py-1.5 text-xs font-bold rounded-xl bg-slate-800 text-white border border-slate-700 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              Next
+            </button>
+          </div>
+        </div>
+      )}
       {selectedCarrier && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-950/90 backdrop-blur-sm animate-in fade-in duration-300">
           <div className="bg-slate-900 border-2 border-slate-700/50 w-full max-w-7xl max-h-[95vh] rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col relative animate-in zoom-in slide-in-from-bottom-4 duration-300">
-
             <div className="p-4 md:p-5 border-b border-slate-800 bg-slate-850/30 flex justify-between items-start">
               <div className="flex gap-4 md:gap-6 items-center">
                 <div className="w-12 h-12 md:w-14 md:h-14 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-indigo-500/10">
@@ -550,7 +568,6 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ carriers, onSearch
                       </span>
                       {copiedField === 'dot' ? <Check size={12} className="text-white" /> : <Copy size={12} className="text-white/60" />}
                     </button>
-
                     <button 
                       onClick={() => handleCopy(selectedCarrier.mcNumber || '', 'mc')}
                       className="bg-[#10B981] hover:bg-[#059669] text-white rounded-lg px-3 py-1.5 flex items-center gap-2 transition-all active:scale-95 shadow-md"
@@ -560,7 +577,6 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ carriers, onSearch
                       </span>
                       {copiedField === 'mc' ? <Check size={12} className="text-white" /> : <Copy size={12} className="text-white/60" />}
                     </button>
-
                     <div className="bg-[#10B981] text-white rounded-lg px-3 py-1.5 shadow-md">
                       <span className="font-black text-[10px] md:text-xs uppercase tracking-wide">
                         {selectedCarrier.operationClassification?.some(c => c.toLowerCase().includes('broker')) ? 'Broker' : 'Carrier'}
@@ -573,9 +589,7 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ carriers, onSearch
                 <X size={24} />
               </button>
             </div>
-
             <div className="flex-1 overflow-y-auto p-6 md:p-10 custom-scrollbar bg-slate-900/40">
-
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div className="bg-slate-850/60 p-6 rounded-3xl border border-slate-700/50 space-y-4 shadow-lg group">
                   <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 mb-1 group-hover:text-indigo-400 transition-colors">
@@ -587,7 +601,6 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ carriers, onSearch
                     <div className="flex flex-col"><span className="text-[9px] text-slate-500 font-black uppercase">DUNS Number</span><span className="text-sm font-bold text-slate-400">{selectedCarrier.dunsNumber || '--'}</span></div>
                   </div>
                 </div>
-
                 <div className="bg-slate-850/60 p-6 rounded-3xl border border-slate-700/50 space-y-4 shadow-lg group">
                   <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 mb-1 group-hover:text-indigo-400 transition-colors">
                     <Phone size={14} className="text-indigo-400" /> Contact Info
@@ -610,7 +623,6 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ carriers, onSearch
                     </div>
                   </div>
                 </div>
-
                 <div className="bg-slate-850/60 p-6 rounded-3xl border border-slate-700/50 space-y-4 shadow-lg group">
                   <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2 mb-1 group-hover:text-indigo-400 transition-colors">
                     <Calendar size={14} className="text-indigo-400" /> Compliance
@@ -634,7 +646,6 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ carriers, onSearch
                   </div>
                 </div>
               </div>
-
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
                 <div className="bg-slate-850/40 p-8 rounded-[2rem] border border-slate-800 flex flex-col gap-6 shadow-2xl">
                   <div className="flex items-center gap-3">
@@ -686,7 +697,6 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ carriers, onSearch
                     </div>
                   </div>
                 </div>
-
                 <div className="bg-slate-850/40 p-8 rounded-[2rem] border border-slate-800 flex flex-col shadow-2xl">
                   <div className="flex items-center gap-3 mb-8">
                     <ShieldCheck size={20} className="text-emerald-400" />
@@ -717,7 +727,6 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ carriers, onSearch
                   </div>
                 </div>
               </div>
-
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div className="bg-slate-850/40 p-8 rounded-[2rem] border border-slate-800 flex flex-col gap-6 shadow-2xl relative">
                   <div className="flex items-center justify-between">
@@ -783,13 +792,11 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ carriers, onSearch
                     </div>
                   )}
                 </div>
-
                 <div className="bg-white rounded-[2rem] p-8 flex flex-col shadow-xl text-slate-900">
                   <div className="flex items-center gap-3 mb-6">
                     <Activity size={20} className="text-slate-700" />
                     <h4 className="text-xl font-black uppercase tracking-tight">Inspections & Crashes</h4>
                   </div>
-
                   <div className="flex bg-slate-100 p-1 rounded-xl mb-6">
                     <button 
                       onClick={() => setActiveTab('inspections')}
@@ -804,7 +811,6 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ carriers, onSearch
                       Crashes
                     </button>
                   </div>
-
                   <div className="grid grid-cols-4 gap-4 mb-6">
                     <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 text-center">
                       <span className="text-[10px] font-bold text-slate-400 uppercase block mb-1">Total</span>
@@ -827,7 +833,6 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ carriers, onSearch
                       <span className="text-xl font-black">{selectedCarrier.crashes?.length || 0}</span>
                     </div>
                   </div>
-
                   <div className="space-y-3 max-h-[400px] overflow-y-auto custom-scrollbar pr-2">
                     {activeTab === 'inspections' ? (
                       selectedCarrier.inspections?.map((insp, i) => (
@@ -916,9 +921,7 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ carriers, onSearch
                   </div>
                 </div>
               </div>
-
             </div>
-
           </div>
         </div>
       )}
