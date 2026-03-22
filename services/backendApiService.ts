@@ -668,7 +668,7 @@ export interface NewVentureFilters {
   offset?: number;
 }
 
-export const fetchNewVenturesFromBackend = async (filters: NewVentureFilters = {}): Promise<any[]> => {
+export const fetchNewVenturesFromBackend = async (filters: NewVentureFilters = {}): Promise<{ data: any[]; filtered_count: number }> => {
   try {
     const params = new URLSearchParams();
 
@@ -694,10 +694,19 @@ export const fetchNewVenturesFromBackend = async (filters: NewVentureFilters = {
 
     const url = `${BACKEND_URL}/api/new-ventures?${params.toString()}`;
     const response = await fetch(url, { headers: authHeadersGet() });
-    return await handleResponse(response);
+    const result = await handleResponse(response);
+    // Handle new response format {data: [...], filtered_count: N}
+    if (result && typeof result === 'object' && Array.isArray(result.data)) {
+      return { data: result.data, filtered_count: result.filtered_count || 0 };
+    }
+    // Fallback for old response format (plain array)
+    if (Array.isArray(result)) {
+      return { data: result, filtered_count: result.length };
+    }
+    return { data: [], filtered_count: 0 };
   } catch (err: any) {
     console.error('Backend fetch new ventures error:', err);
-    return [];
+    return { data: [], filtered_count: 0 };
   }
 };
 
