@@ -246,9 +246,10 @@ export interface CarrierFilters {
   inspectionsMin?: number;
   inspectionsMax?: number;
   limit?: number;
+  offset?: number;
 }
 
-export const fetchCarriersFromBackend = async (filters: CarrierFilters = {}): Promise<any[]> => {
+export const fetchCarriersFromBackend = async (filters: CarrierFilters = {}): Promise<{ data: any[]; filtered_count: number }> => {
   try {
     const params = new URLSearchParams();
 
@@ -289,13 +290,23 @@ export const fetchCarriersFromBackend = async (filters: CarrierFilters = {}): Pr
     if (filters.inspectionsMin !== undefined) params.append('inspections_min', String(filters.inspectionsMin));
     if (filters.inspectionsMax !== undefined) params.append('inspections_max', String(filters.inspectionsMax));
     if (filters.limit) params.append('limit', String(filters.limit));
+    if (filters.offset) params.append('offset', String(filters.offset));
 
     const url = `${BACKEND_URL}/api/carriers?${params.toString()}`;
     const response = await fetch(url, { headers: authHeadersGet() });
-    return await handleResponse(response);
+    const result = await handleResponse(response);
+    
+    if (result && typeof result === 'object' && Array.isArray(result.data)) {
+      return { data: result.data, filtered_count: result.filtered_count || 0 };
+    }
+    
+    if (Array.isArray(result)) {
+      return { data: result, filtered_count: result.length };
+    }
+    return { data: [], filtered_count: 0 };
   } catch (err: any) {
     console.error('Backend fetch error:', err);
-    return [];
+    return { data: [], filtered_count: 0 };
   }
 };
 
@@ -644,7 +655,6 @@ export const deleteFMCSAEntriesBeforeDateFromBackend = async (date: string): Pro
   }
 };
 
-// ── New Venture Types & API Functions ──────────────────────────────────────
 
 export interface NewVentureFilters {
   docketNumber?: string;
@@ -695,11 +705,11 @@ export const fetchNewVenturesFromBackend = async (filters: NewVentureFilters = {
     const url = `${BACKEND_URL}/api/new-ventures?${params.toString()}`;
     const response = await fetch(url, { headers: authHeadersGet() });
     const result = await handleResponse(response);
-    // Handle new response format {data: [...], filtered_count: N}
+    
     if (result && typeof result === 'object' && Array.isArray(result.data)) {
       return { data: result.data, filtered_count: result.filtered_count || 0 };
     }
-    // Fallback for old response format (plain array)
+    
     if (Array.isArray(result)) {
       return { data: result, filtered_count: result.length };
     }
