@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, RefreshCw, Calendar, Search, Filter, ChevronDown, ExternalLink, AlertCircle, X, Database, CheckCircle2, TrendingUp, BarChart3, Clock, ArrowRight } from 'lucide-react';
 import { saveFMCSARegisterEntries, fetchFMCSARegisterByExtractedDate } from '../services/fmcsaRegisterService';
+import { getToken } from '../services/backendApiService';
 interface FMCSARegisterEntry {
   number: string;
   title: string;
@@ -78,9 +79,12 @@ export const FMCSARegister: React.FC = () => {
       const formattedDate = formatDateForAPI(selectedDate);
       const apiUrl = `${import.meta.env.VITE_BACKEND_URL || 'https://backend-production-475c.up.railway.app'}/api/fmcsa-register`;
       
+      const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+      const token = getToken();
+      if (token) headers['Authorization'] = `Bearer ${token}`;
       const response = await fetch(apiUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ date: formattedDate })
       });
       
