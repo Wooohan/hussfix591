@@ -169,7 +169,7 @@ const App: React.FC = () => {
         />
         
         <main className="flex-1 ml-64 relative bg-[url('/noise.svg')] bg-opacity-20 h-screen overflow-hidden">
-          <div className="absolute top-0 left-0 w-full h-96 bg-indigo-600/10 blur-[100px] pointer-events-none rounded-full -translate-y-1/2"></div>
+          <div className="absolute top-0 left-0 w-full h-96 bg-indigo-600/10 blur-[150px] pointer-events-none rounded-full -translate-y-1/2"></div>
           {user && renderContent()}
         </main>
       </div>
