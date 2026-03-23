@@ -175,12 +175,12 @@ const App: React.FC = () => {
               inset: 0,
               backgroundImage: "url('/noise.svg')",
               backgroundRepeat: 'repeat',
-              opacity: 0.30,
+              opacity: 0.35,
               pointerEvents: 'none',
               zIndex: 1,
             }}
           />
-          <div className="absolute top-0 left-0 w-full h-96 bg-indigo-600/10 blur-[85px] pointer-events-none rounded-full -translate-y-1/2"></div>
+          <div className="absolute top-0 left-0 w-full h-96 bg-indigo-600/10 blur-[100px] pointer-events-none rounded-full -translate-y-1/2"></div>
           {user && renderContent()}
         </main>
       </div>
