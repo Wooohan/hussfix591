@@ -2,35 +2,39 @@ import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Users, Database, Activity, TrendingUp } from 'lucide-react';
 import { CarrierData } from '../types';
+
 interface DashboardProps {
   carriers: CarrierData[];
-  totalInDb: number;
   isLoading: boolean;
 }
-export const Dashboard: React.FC<DashboardProps> = ({ carriers, totalInDb, isLoading }) => {
-  const totalScraped = totalInDb || carriers.length;
+
+export const Dashboard: React.FC<DashboardProps> = ({ carriers, isLoading }) => {
+  const totalScraped = carriers.length;
   const activeCarriers = carriers.filter(c =>
     c.status?.toUpperCase().includes('AUTHORIZED') && !c.status?.toUpperCase().includes('NOT AUTHORIZED')
   ).length;
   const brokers = carriers.filter(c => c.entityType?.toUpperCase().includes('BROKER')).length;
   const withEmail = carriers.filter(c => c.email && c.email.length > 0).length;
   const emailRate = totalScraped > 0 ? ((withEmail / totalScraped) * 100).toFixed(1) : '0';
+
   const notAuthorized = carriers.filter(c =>
     c.status?.toUpperCase().includes('NOT AUTHORIZED')
   ).length;
   const other = totalScraped - activeCarriers - notAuthorized;
+
   const entityData = [
     { name: 'Authorized', value: activeCarriers, color: '#4ade80' },
     { name: 'Not Auth', value: notAuthorized, color: '#f87171' },
     { name: 'Other', value: other, color: '#facc15' },
   ];
+
   return (
     <div className="p-8 space-y-8 animate-fade-in">
       <div className="flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">Dashboard Overview</h1>
           <p className="text-slate-400">
-            {isLoading ? 'Loading carrier data...' : `${totalScraped.toLocaleString()} carriers in database`}
+            {isLoading ? 'Loading carrier data...' : `${totalScraped.toLocaleString()} carriers loaded from database`}
           </p>
         </div>
         <div className="flex items-center gap-2 text-sm text-slate-400 bg-slate-800/50 px-3 py-1 rounded-full border border-slate-700">
@@ -38,6 +42,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ carriers, totalInDb, isLoa
           {isLoading ? 'Loading...' : 'System Operational'}
         </div>
       </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
           { label: 'Total in DB', value: totalScraped.toLocaleString(), icon: Database, color: 'text-blue-400' },
@@ -56,6 +61,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ carriers, totalInDb, isLoa
           </div>
         ))}
       </div>
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-slate-800/50 border border-slate-700 p-6 rounded-2xl">
           <h3 className="text-lg font-bold text-white mb-6">Authority Status Breakdown</h3>
@@ -84,6 +90,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ carriers, totalInDb, isLoa
             </div>
           )}
         </div>
+
         <div className="bg-slate-800/50 border border-slate-700 p-6 rounded-2xl">
           <h3 className="text-lg font-bold text-white mb-6">Quick Stats</h3>
           <div className="space-y-4">
