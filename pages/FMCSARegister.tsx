@@ -14,7 +14,7 @@ export const FMCSARegister: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string>('');
   const [selectedDate, setSelectedDate] = useState<string>(getTodayDate());
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('NAME CHANGE');
   const [searchTerm, setSearchTerm] = useState('');
   const [error, setError] = useState<string>('');
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -55,7 +55,7 @@ export const FMCSARegister: React.FC = () => {
     setError('');
     try {
       const data = await fetchFMCSARegisterByExtractedDate(selectedDate, {
-        category: selectedCategory !== 'all' ? selectedCategory : undefined,
+        category: selectedCategory,
         searchTerm: searchTerm || undefined
       });
       if (data && data.length > 0) {
@@ -123,7 +123,7 @@ export const FMCSARegister: React.FC = () => {
     }
   };
   const filteredData = registerData.filter(entry => {
-    const matchesCategory = selectedCategory === 'all' || entry.category === selectedCategory;
+    const matchesCategory = entry.category === selectedCategory;
     const matchesSearch = entry.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
                          entry.number.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesCategory && matchesSearch;
@@ -210,7 +210,6 @@ export const FMCSARegister: React.FC = () => {
               onChange={(e) => setSelectedCategory(e.target.value)}
               className="w-full pl-11 pr-4 py-3 bg-slate-950/50 border border-transparent rounded-2xl text-sm appearance-none focus:outline-none focus:border-indigo-500/50 text-white transition-all"
             >
-              <option value="all">All Categories</option>
               {categories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
             </select>
             <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none" size={14} />
