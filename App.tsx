@@ -168,19 +168,8 @@ const App: React.FC = () => {
           onLogout={handleLogout}
         />
         
-        <main className="flex-1 ml-64 relative h-screen overflow-hidden">
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              backgroundImage: "url('/noise.svg')",
-              backgroundRepeat: 'repeat',
-              opacity: 0.25,
-              pointerEvents: 'none',
-              zIndex: 1,
-            }}
-          />
-          <div className="absolute top-0 left-0 w-full h-96 bg-indigo-600/10 blur-[50px] pointer-events-none rounded-full -translate-y-1/2"></div>
+        <main className="flex-1 ml-64 relative bg-[url('/noise.svg')] bg-repeat h-screen overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-96 bg-indigo-600/10 blur-[100px] pointer-events-none rounded-full -translate-y-1/2"></div>
           {user && renderContent()}
         </main>
       </div>
