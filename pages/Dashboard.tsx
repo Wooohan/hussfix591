@@ -1,48 +1,53 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { Users, Database, Activity, TrendingUp } from 'lucide-react';
-import { CarrierData } from '../types';
-
+import { DashboardStats, fetchDashboardStatsFromBackend } from '../services/backendApiService';
 interface DashboardProps {
-  carriers: CarrierData[];
-  isLoading: boolean;
+  isLoading?: boolean;
 }
-
-export const Dashboard: React.FC<DashboardProps> = ({ carriers, isLoading }) => {
-  const totalScraped = carriers.length;
-  const activeCarriers = carriers.filter(c =>
-    c.status?.toUpperCase().includes('AUTHORIZED') && !c.status?.toUpperCase().includes('NOT AUTHORIZED')
-  ).length;
-  const brokers = carriers.filter(c => c.entityType?.toUpperCase().includes('BROKER')).length;
-  const withEmail = carriers.filter(c => c.email && c.email.length > 0).length;
-  const emailRate = totalScraped > 0 ? ((withEmail / totalScraped) * 100).toFixed(1) : '0';
-
-  const notAuthorized = carriers.filter(c =>
-    c.status?.toUpperCase().includes('NOT AUTHORIZED')
-  ).length;
-  const other = totalScraped - activeCarriers - notAuthorized;
-
+export const Dashboard: React.FC<DashboardProps> = ({ isLoading: parentLoading }) => {
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  useEffect(() => {
+    const loadStats = async () => {
+      setIsLoading(true);
+      try {
+        const data = await fetchDashboardStatsFromBackend();
+        setStats(data);
+      } catch (err) {
+        console.error('Failed to load dashboard stats:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadStats();
+  }, []);
+  const loading = isLoading || parentLoading;
+  const totalScraped = stats?.total ?? 0;
+  const activeCarriers = stats?.active_carriers ?? 0;
+  const brokers = stats?.brokers ?? 0;
+  const emailRate = stats?.email_rate ?? '0';
+  const notAuthorized = stats?.not_authorized ?? 0;
+  const other = stats?.other ?? 0;
   const entityData = [
     { name: 'Authorized', value: activeCarriers, color: '#4ade80' },
     { name: 'Not Auth', value: notAuthorized, color: '#f87171' },
     { name: 'Other', value: other, color: '#facc15' },
   ];
-
   return (
     <div className="p-8 space-y-8 animate-fade-in">
       <div className="flex justify-between items-end">
         <div>
           <h1 className="text-3xl font-bold text-white mb-2">Dashboard Overview</h1>
           <p className="text-slate-400">
-            {isLoading ? 'Loading carrier data...' : `${totalScraped.toLocaleString()} carriers loaded from database`}
+            {loading ? 'Loading carrier data...' : `${totalScraped.toLocaleString()} carriers loaded from database`}
           </p>
         </div>
         <div className="flex items-center gap-2 text-sm text-slate-400 bg-slate-800/50 px-3 py-1 rounded-full border border-slate-700">
-          <span className={`w-2 h-2 rounded-full ${isLoading ? 'bg-yellow-500' : 'bg-green-500'} animate-pulse`}></span>
-          {isLoading ? 'Loading...' : 'System Operational'}
+          <span className={`w-2 h-2 rounded-full ${loading ? 'bg-yellow-500' : 'bg-green-500'} animate-pulse`}></span>
+          {loading ? 'Loading...' : 'System Operational'}
         </div>
       </div>
-
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {[
           { label: 'Total in DB', value: totalScraped.toLocaleString(), icon: Database, color: 'text-blue-400' },
@@ -61,7 +66,6 @@ export const Dashboard: React.FC<DashboardProps> = ({ carriers, isLoading }) => 
           </div>
         ))}
       </div>
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-slate-800/50 border border-slate-700 p-6 rounded-2xl">
           <h3 className="text-lg font-bold text-white mb-6">Authority Status Breakdown</h3>
@@ -90,25 +94,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ carriers, isLoading }) => 
             </div>
           )}
         </div>
-
         <div className="bg-slate-800/50 border border-slate-700 p-6 rounded-2xl">
           <h3 className="text-lg font-bold text-white mb-6">Quick Stats</h3>
           <div className="space-y-4">
             <div className="flex justify-between items-center p-3 bg-slate-900/50 rounded-xl">
               <span className="text-slate-400 text-sm">With Safety Rating</span>
-              <span className="text-white font-bold">{carriers.filter(c => c.safetyRating).length}</span>
+              <span className="text-white font-bold">{stats?.with_safety_rating ?? 0}</span>
             </div>
             <div className="flex justify-between items-center p-3 bg-slate-900/50 rounded-xl">
               <span className="text-slate-400 text-sm">With Insurance</span>
-              <span className="text-white font-bold">{carriers.filter(c => c.insurancePolicies && c.insurancePolicies.length > 0).length}</span>
+              <span className="text-white font-bold">{stats?.with_insurance ?? 0}</span>
             </div>
             <div className="flex justify-between items-center p-3 bg-slate-900/50 rounded-xl">
               <span className="text-slate-400 text-sm">With Inspections</span>
-              <span className="text-white font-bold">{carriers.filter(c => c.inspections && c.inspections.length > 0).length}</span>
+              <span className="text-white font-bold">{stats?.with_inspections ?? 0}</span>
             </div>
             <div className="flex justify-between items-center p-3 bg-slate-900/50 rounded-xl">
               <span className="text-slate-400 text-sm">With Crashes</span>
-              <span className="text-white font-bold">{carriers.filter(c => c.crashes && c.crashes.length > 0).length}</span>
+              <span className="text-white font-bold">{stats?.with_crashes ?? 0}</span>
             </div>
           </div>
         </div>
