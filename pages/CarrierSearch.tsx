@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, Eye, X, MapPin, Phone, Mail, Hash, Truck, Calendar, ShieldCheck, Download, ShieldAlert, Activity, Info, Globe, Map as MapIcon, Boxes, Shield, ExternalLink, CheckCircle2, AlertTriangle, Zap, Loader2, ChevronDown, ChevronUp, Copy, Check, Database } from 'lucide-react';
-import { CarrierData } from '../types';
+import { CarrierData, ActiveInsuranceFiling } from '../types';
 import { downloadCSV } from '../services/mockService';
-import { CarrierFilters, fetchActiveInsurance, ActiveInsurancePolicy } from '../services/backendApiService';
 import { fetchCarriersFromSupabase, getCarrierCountFromSupabase, CarrierFiltersSupabase } from '../services/supabaseClient';
 interface CarrierSearchProps {
   onNavigateToInsurance: () => void;
@@ -141,8 +140,7 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsura
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'inspections' | 'crashes'>('inspections');
   const [expandedInspection, setExpandedInspection] = useState<string | null>(null);
-  const [activeInsurance, setActiveInsurance] = useState<ActiveInsurancePolicy[]>([]);
-  const [isLoadingInsurance, setIsLoadingInsurance] = useState(false);
+  const [activeInsurance, setActiveInsurance] = useState<ActiveInsuranceFiling[]>([]);
   const [filters, setFilters] = useState({
     active: '',
     state: [] as string[],
@@ -190,14 +188,7 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsura
   useEffect(() => {
     if (selectedDot) {
       const carrier = carriers.find(c => c.dotNumber === selectedDot);
-      if (carrier?.mcNumber) {
-        setIsLoadingInsurance(true);
-        setActiveInsurance([]);
-        fetchActiveInsurance(carrier.mcNumber).then(policies => {
-          setActiveInsurance(policies);
-          setIsLoadingInsurance(false);
-        });
-      }
+      setActiveInsurance(carrier?.activeInsuranceFilings || []);
     } else {
       setActiveInsurance([]);
     }
@@ -720,12 +711,7 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsura
                     <h4 className="text-xl font-black text-white uppercase tracking-tight">Verified L&I Filings</h4>
                   </div>
                   <div className="space-y-4 flex-1 overflow-y-auto custom-scrollbar pr-2">
-                    {isLoadingInsurance ? (
-                      <div className="flex flex-col items-center justify-center py-20 text-slate-500">
-                        <Loader2 size={32} className="animate-spin mb-4 text-indigo-400" />
-                        <p className="text-xs font-black uppercase tracking-widest">Loading Insurance Data...</p>
-                      </div>
-                    ) : activeInsurance.length > 0 ? (
+                    {activeInsurance.length > 0 ? (
                       activeInsurance.map((p, i) => (
                         <div key={i} className="bg-slate-900 p-6 rounded-[1.5rem] border border-slate-800 shadow-sm group/policy hover:border-indigo-500/30 transition-all">
                           <div className="flex justify-between items-start mb-4">
