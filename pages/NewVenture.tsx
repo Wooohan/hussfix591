@@ -8,9 +8,6 @@ import { NewVentureData, User } from '../types';
 import {
   fetchNewVenturesFromBackend,
   startNewVentureScrape,
-  getNewVentureCount,
-  getNewVentureDates,
-  fetchNewVentureDetail,
   NewVentureFilters,
 } from '../services/backendApiService';
 interface NewVentureProps {
@@ -155,7 +152,6 @@ export const NewVenture: React.FC<NewVentureProps> = ({ user }) => {
   const PAGE_SIZE = 200;
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedVenture, setSelectedVenture] = useState<NewVentureData | null>(null);
-  const [loadingDetail, setLoadingDetail] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const [docketSearch, setDocketSearch] = useState('');
@@ -182,8 +178,6 @@ export const NewVenture: React.FC<NewVentureProps> = ({ user }) => {
   const [isScraping, setIsScraping] = useState(false);
   const [scrapeResult, setScrapeResult] = useState<{ success: boolean; message: string } | null>(null);
   useEffect(() => {
-    getNewVentureCount().then(setTotalCount);
-    getNewVentureDates().then(setAvailDates);
     loadVentures({});
   }, []);
   const loadVentures = async (f: NewVentureFilters, page = 0) => {
@@ -193,17 +187,14 @@ export const NewVenture: React.FC<NewVentureProps> = ({ user }) => {
       setVentures(result.data);
       setCurrentPage(page);
       setFilteredCount(result.filtered_count);
+      setTotalCount(result.total_count);
+      setAvailDates(result.available_dates);
     } finally {
       setIsLoading(false);
     }
   };
-  const handleRowClick = async (v: NewVentureData) => {
-    if (!v.id) { setSelectedVenture(v); return; }
-    setLoadingDetail(true);
+  const handleRowClick = (v: NewVentureData) => {
     setSelectedVenture(v);
-    const detail = await fetchNewVentureDetail(v.id);
-    if (detail) setSelectedVenture(detail as NewVentureData);
-    setLoadingDetail(false);
   };
   const handleFilterChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -254,8 +245,6 @@ export const NewVenture: React.FC<NewVentureProps> = ({ user }) => {
       const res = await startNewVentureScrape(scrapeDate);
       if (res.success) {
         setScrapeResult({ success: true, message: `Scraped ${res.scraped} records, saved ${res.saved} to database.` });
-        getNewVentureCount().then(setTotalCount);
-        getNewVentureDates().then(setAvailDates);
         loadVentures(buildFilters());
       } else {
         setScrapeResult({ success: false, message: res.error || 'Scrape failed.' });
@@ -287,7 +276,7 @@ export const NewVenture: React.FC<NewVentureProps> = ({ user }) => {
     { value: 'authorization_pending', label: 'Authorization Pending' },
     { value: 'not_authorized', label: 'Not Authorized' },
   ];
-  const DetailModal: React.FC<{ v: NewVentureData; onClose: () => void; isLoading?: boolean }> = ({ v, onClose, isLoading: isDetailLoading }) => {
+  const DetailModal: React.FC<{ v: NewVentureData; onClose: () => void }> = ({ v, onClose }) => {
     const [detailTab, setDetailTab] = useState<'overview' | 'cargo' | 'fleet' | 'safety' | 'driver'>('overview');
     const CopyBtn: React.FC<{ text: string; field: string }> = ({ text, field }) => {
       if (!text || text === '-') return null;
@@ -379,12 +368,6 @@ export const NewVenture: React.FC<NewVentureProps> = ({ user }) => {
             ))}
           </div>
           <div className="flex-1 overflow-y-auto p-6 md:p-10 custom-scrollbar bg-slate-900/40 relative">
-            {isDetailLoading && (
-              <div className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm z-10 flex flex-col items-center justify-center rounded-b-[2.5rem]">
-                <Loader2 className="w-10 h-10 text-indigo-400 animate-spin mb-4" />
-                <p className="text-slate-400 text-sm font-medium">Loading details...</p>
-              </div>
-            )}
             {detailTab === 'overview' && (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
                 <div className="bg-slate-850/60 p-6 rounded-3xl border border-slate-700/50 space-y-4 shadow-lg group">
@@ -903,7 +886,7 @@ export const NewVenture: React.FC<NewVentureProps> = ({ user }) => {
           </div>
         </div>
       )}
-      {selectedVenture && <DetailModal v={selectedVenture} onClose={() => setSelectedVenture(null)} isLoading={loadingDetail} />}
+      {selectedVenture && <DetailModal v={selectedVenture} onClose={() => setSelectedVenture(null)} />}
     </div>
   );
 };
