@@ -710,7 +710,7 @@ export interface NewVentureFilters {
   offset?: number;
 }
 
-export const fetchNewVenturesFromBackend = async (filters: NewVentureFilters = {}): Promise<{ data: any[]; filtered_count: number }> => {
+export const fetchNewVenturesFromBackend = async (filters: NewVentureFilters = {}): Promise<{ data: any[]; filtered_count: number; total_count: number; available_dates: string[] }> => {
   try {
     const params = new URLSearchParams();
 
@@ -739,16 +739,21 @@ export const fetchNewVenturesFromBackend = async (filters: NewVentureFilters = {
     const result = await handleResponse(response);
     
     if (result && typeof result === 'object' && Array.isArray(result.data)) {
-      return { data: result.data, filtered_count: result.filtered_count || 0 };
+      return {
+        data: result.data,
+        filtered_count: result.filtered_count || 0,
+        total_count: result.total_count || 0,
+        available_dates: result.available_dates || [],
+      };
     }
     
     if (Array.isArray(result)) {
-      return { data: result, filtered_count: result.length };
+      return { data: result, filtered_count: result.length, total_count: result.length, available_dates: [] };
     }
-    return { data: [], filtered_count: 0 };
+    return { data: [], filtered_count: 0, total_count: 0, available_dates: [] };
   } catch (err: any) {
     console.error('Backend fetch new ventures error:', err);
-    return { data: [], filtered_count: 0 };
+    return { data: [], filtered_count: 0, total_count: 0, available_dates: [] };
   }
 };
 
