@@ -596,7 +596,7 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsura
                     </button>
                     <div className="bg-[#10B981] text-white rounded-lg px-3 py-1.5 shadow-md">
                       <span className="font-black text-[10px] md:text-xs uppercase tracking-wide">
-                        {selectedCarrier.operationClassification?.some(c => c.toLowerCase().includes('broker')) ? 'Broker' : 'Carrier'}
+                        {selectedCarrier.entityType || 'CARRIER'}
                       </span>
                     </div>
                   </div>
