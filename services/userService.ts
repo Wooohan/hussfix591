@@ -10,6 +10,7 @@ import {
   blockIPInBackend,
   unblockIPInBackend,
   isIPBlockedInBackend,
+  fetchAdminInitFromBackend,
 } from './backendApiService';
 
 export const fetchUsersFromSupabase = async (): Promise<User[]> => {
@@ -57,4 +58,19 @@ export const unblockIPInSupabase = async (ip: string): Promise<boolean> => {
 };
 export const isIPBlocked = async (ip: string): Promise<boolean> => {
   return isIPBlockedInBackend(ip);
+};
+export const fetchAdminInit = async (): Promise<{ users: User[]; blockedIPs: BlockedIP[] }> => {
+  try {
+    const result = await fetchAdminInitFromBackend();
+    const users = result.users;
+    const blockedIPs = result.blocked_ips.map(row => ({
+      ip: row.ip_address,
+      blockedAt: row.blocked_at,
+      reason: row.reason || 'No reason provided'
+    }));
+    return { users, blockedIPs };
+  } catch (err) {
+    console.error('Error in fetchAdminInit:', err);
+    return { users: [], blockedIPs: [] };
+  }
 };
