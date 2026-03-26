@@ -397,6 +397,38 @@ export const updateCarrierSafetyInBackend = async (dotNumber: string, safetyData
   }
 };
 
+export const fetchAdminInitFromBackend = async (): Promise<{ users: User[]; blocked_ips: BlockedIP[] }> => {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/admin/init`, { headers: authHeadersGet() });
+    const data = await handleResponse(response);
+    const users = (data.users || []).map((row: any) => ({
+      id: row.user_id,
+      name: row.name,
+      email: row.email,
+      role: row.role,
+      plan: row.plan,
+      dailyLimit: row.daily_limit,
+      recordsExtractedToday: row.records_extracted_today,
+      lastActive: row.last_active || 'Never',
+      ipAddress: row.ip_address || '',
+      isOnline: row.is_online || false,
+      isBlocked: row.is_blocked || false,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+    }));
+    const blocked_ips = (data.blocked_ips || []).map((row: any) => ({
+      id: row.id,
+      ip_address: row.ip_address,
+      reason: row.reason || 'No reason provided',
+      blocked_at: row.blocked_at,
+    }));
+    return { users, blocked_ips };
+  } catch (err: any) {
+    console.error('Backend admin init error:', err);
+    return { users: [], blocked_ips: [] };
+  }
+};
+
 export const fetchUsersFromBackend = async (): Promise<User[]> => {
   try {
     const response = await fetch(`${BACKEND_URL}/api/users`, { headers: authHeadersGet() });
