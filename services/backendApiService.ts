@@ -212,6 +212,7 @@ export interface CarrierFilters {
   mcNumber?: string;
   dotNumber?: string;
   legalName?: string;
+  entityType?: string;
   active?: string;
   state?: string;
   hasEmail?: string;
@@ -230,6 +231,8 @@ export interface CarrierFilters {
   insuranceRequired?: string[];
   bipdMin?: number;
   bipdMax?: number;
+  insEffectiveDateFrom?: string;
+  insEffectiveDateTo?: string;
   bipdOnFile?: string;
   cargoOnFile?: string;
   bondOnFile?: string;
@@ -256,6 +259,7 @@ export const fetchCarriersFromBackend = async (filters: CarrierFilters = {}): Pr
     if (filters.mcNumber) params.append('mc_number', filters.mcNumber);
     if (filters.dotNumber) params.append('dot_number', filters.dotNumber);
     if (filters.legalName) params.append('legal_name', filters.legalName);
+    if (filters.entityType) params.append('entity_type', filters.entityType);
     if (filters.active) params.append('active', filters.active);
     if (filters.state) params.append('state', filters.state);
     if (filters.hasEmail) params.append('has_email', filters.hasEmail);
@@ -272,6 +276,8 @@ export const fetchCarriersFromBackend = async (filters: CarrierFilters = {}): Pr
     if (filters.insuranceRequired?.length) params.append('insurance_required', filters.insuranceRequired.join(','));
     if (filters.bipdMin !== undefined) params.append('bipd_min', String(filters.bipdMin));
     if (filters.bipdMax !== undefined) params.append('bipd_max', String(filters.bipdMax));
+    if (filters.insEffectiveDateFrom) params.append('ins_effective_date_from', filters.insEffectiveDateFrom);
+    if (filters.insEffectiveDateTo) params.append('ins_effective_date_to', filters.insEffectiveDateTo);
     if (filters.bipdOnFile) params.append('bipd_on_file', filters.bipdOnFile);
     if (filters.cargoOnFile) params.append('cargo_on_file', filters.cargoOnFile);
     if (filters.bondOnFile) params.append('bond_on_file', filters.bondOnFile);
