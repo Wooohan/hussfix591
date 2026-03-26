@@ -51,11 +51,7 @@ const App: React.FC = () => {
   
   const [allCarriers, setAllCarriers] = useState<CarrierData[]>([]);
   const [isLoadingCarriers, setIsLoadingCarriers] = useState(false);
-  useEffect(() => {
-    if (user) {
-      handleCarrierSearch({});
-    }
-  }, [user]);
+  // Carriers are fetched on-demand when carrier search page is opened, not on login
   const handleCarrierSearch = async (filters: CarrierFiltersSupabase) => {
     try {
       setIsLoadingCarriers(true);
@@ -128,6 +124,9 @@ const App: React.FC = () => {
           />
         );
       case 'carrier-search':
+        if (allCarriers.length === 0 && !isLoadingCarriers) {
+          handleCarrierSearch({});
+        }
         return (
           <CarrierSearch 
             onNavigateToInsurance={() => { if(isAdmin) setCurrentView('insurance-scraper'); }} 
