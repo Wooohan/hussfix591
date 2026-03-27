@@ -258,7 +258,7 @@ export const fetchCarriersFromSupabase = async (filters: CarrierFiltersSupabase 
       basicScores: record.basic_scores,
       oosRates: record.oos_rates,
       insurancePolicies: record.insurance_policies,
-      activeInsuranceFilings: record.active_insurance_filings || [],
+      insuranceHistoryFilings: record.insurance_history_filings || [],
       inspections: record.inspections,
       crashes: record.crashes,
       createdAt: record.created_at,
