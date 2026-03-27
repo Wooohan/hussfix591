@@ -40,14 +40,17 @@ export interface Crash {
   fatal: string;
   injuries: string;
 }
-export interface ActiveInsuranceFiling {
+export interface InsuranceHistoryFiling {
   type: string;
-  class: string;
   coverageAmount: string;
   policyNumber: string;
   effectiveDate: string;
   carrier: string;
   formCode: string;
+  transDate: string;
+  underlLimAmount: string;
+  canclEffectiveDate: string;
+  status: string;
 }
 export interface CarrierData {
   mcNumber: string;
@@ -73,7 +76,7 @@ export interface CarrierData {
   stateCarrierId: string;
   dunsNumber: string;
   insurancePolicies?: InsurancePolicy[];
-  activeInsuranceFilings?: ActiveInsuranceFiling[];
+  insuranceHistoryFilings?: InsuranceHistoryFiling[];
   safetyRating?: string;
   safetyRatingDate?: string;
   basicScores?: BasicScore[];
