@@ -33,7 +33,7 @@ const CARGO_TYPES = [
   'Paper Products','Utilities','Agricultural/Farm Supplies',
   'Construction','Water Well','Other'
 ];
-const INSURANCE_REQUIRED_TYPES = ['BI&PD','CARGO','BOND'];
+const INSURANCE_REQUIRED_TYPES = ['BI&PD','CARGO','BOND','TRUST FUND'];
 const calculateYearsInBusiness = (mcs150Date: string | undefined): number | null => {
   if (!mcs150Date || mcs150Date === 'N/A') return null;
   try {
@@ -167,6 +167,9 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsura
     bipdOnFile: '',
     cargoOnFile: '',
     bondOnFile: '',
+    trustFundOnFile: '',
+    insCancellationDateFrom: '',
+    insCancellationDateTo: '',
     oosMin: '', oosMax: '',
     crashesMin: '', crashesMax: '',
     injuriesMin: '', injuriesMax: '',
@@ -250,6 +253,9 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsura
     if (filters.bipdOnFile) f.bipdOnFile = filters.bipdOnFile;
     if (filters.cargoOnFile) f.cargoOnFile = filters.cargoOnFile;
     if (filters.bondOnFile) f.bondOnFile = filters.bondOnFile;
+    if (filters.trustFundOnFile) f.trustFundOnFile = filters.trustFundOnFile;
+    if (filters.insCancellationDateFrom) f.insCancellationDateFrom = filters.insCancellationDateFrom;
+    if (filters.insCancellationDateTo) f.insCancellationDateTo = filters.insCancellationDateTo;
     
     return f;
   }, [mcSearchTerm, nameSearchTerm, filters]);
@@ -263,7 +269,7 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsura
       hasEmail: '', hasBoc3: '', hasCompanyRep: '',
       classification: [], carrierOperation: [], hazmat: '',
       powerUnitsMin: '', powerUnitsMax: '', driversMin: '', driversMax: '', cargo: [],
-      insuranceRequired: [], insEffectiveDateFrom: '', insEffectiveDateTo: '', bipdMin: '', bipdMax: '', bipdOnFile: '', cargoOnFile: '', bondOnFile: '',
+      insuranceRequired: [], insEffectiveDateFrom: '', insEffectiveDateTo: '', insCancellationDateFrom: '', insCancellationDateTo: '', bipdMin: '', bipdMax: '', bipdOnFile: '', cargoOnFile: '', bondOnFile: '', trustFundOnFile: '',
       oosMin: '', oosMax: '', crashesMin: '', crashesMax: '',
       injuriesMin: '', injuriesMax: '', fatalitiesMin: '', fatalitiesMax: '',
       towawayMin: '', towawayMax: '', inspectionsMin: '', inspectionsMax: '',
@@ -454,6 +460,19 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsura
               <div>
                 <FilterLabel>Has Bond Insurance</FilterLabel>
                 <FilterSelect name="bondOnFile" value={filters.bondOnFile} onChange={handleFilterChange} options={yesNoNumOptions} />
+              </div>
+              <div>
+                <FilterLabel>Has Trust Fund Insurance</FilterLabel>
+                <FilterSelect name="trustFundOnFile" value={filters.trustFundOnFile} onChange={handleFilterChange} options={yesNoNumOptions} />
+              </div>
+              <div>
+                <FilterLabel>Insurance Cancellation Date</FilterLabel>
+                <div className="grid grid-cols-2 gap-2">
+                  <input type="date" name="insCancellationDateFrom" value={filters.insCancellationDateFrom} onChange={handleFilterChange}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-indigo-500" />
+                  <input type="date" name="insCancellationDateTo" value={filters.insCancellationDateTo} onChange={handleFilterChange}
+                    className="w-full bg-slate-800 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white outline-none focus:border-indigo-500" />
+                </div>
               </div>
             </FilterGroup>
             <FilterGroup title="Safety" icon={<ShieldCheck size={12} />}>
