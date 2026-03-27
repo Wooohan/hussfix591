@@ -841,25 +841,28 @@ export const deleteNewVenture = async (id: string): Promise<boolean> => {
   }
 };
 
-export interface ActiveInsurancePolicy {
+export interface InsuranceHistoryPolicy {
   type: string;
-  class: string;
   coverageAmount: string;
   policyNumber: string;
   effectiveDate: string;
   carrier: string;
   formCode: string;
+  transDate: string;
+  underlLimAmount: string;
+  canclEffectiveDate: string;
+  status: string;
 }
 
-export const fetchActiveInsurance = async (mcNumber: string): Promise<ActiveInsurancePolicy[]> => {
+export const fetchInsuranceHistory = async (mcNumber: string): Promise<InsuranceHistoryPolicy[]> => {
   try {
-    const response = await fetch(`${BACKEND_URL}/api/carriers/${mcNumber}/active-insurance`, {
+    const response = await fetch(`${BACKEND_URL}/api/carriers/${mcNumber}/insurance-history`, {
       headers: authHeadersGet(),
     });
     const data = await handleResponse(response);
     return data.policies || [];
   } catch (err: any) {
-    console.error('Backend fetch active insurance error:', err);
+    console.error('Backend fetch insurance history error:', err);
     return [];
   }
 };
