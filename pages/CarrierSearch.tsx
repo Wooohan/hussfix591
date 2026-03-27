@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Search, Eye, X, MapPin, Phone, Mail, Hash, Truck, Calendar, ShieldCheck, Download, ShieldAlert, Activity, Info, Globe, Map as MapIcon, Boxes, Shield, ExternalLink, CheckCircle2, AlertTriangle, Zap, Loader2, ChevronDown, ChevronUp, Copy, Check, Database } from 'lucide-react';
-import { CarrierData, ActiveInsuranceFiling } from '../types';
+import { CarrierData, InsuranceHistoryFiling } from '../types';
 import { downloadCSV } from '../services/mockService';
 import { fetchCarriersFromSupabase, getCarrierCountFromSupabase, CarrierFiltersSupabase } from '../services/supabaseClient';
 interface CarrierSearchProps {
@@ -140,7 +140,7 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsura
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'inspections' | 'crashes'>('inspections');
   const [expandedInspection, setExpandedInspection] = useState<string | null>(null);
-  const [activeInsurance, setActiveInsurance] = useState<ActiveInsuranceFiling[]>([]);
+  const [activeInsurance, setActiveInsurance] = useState<InsuranceHistoryFiling[]>([]);
   const [filters, setFilters] = useState({
     entityType: '',
     active: '',
@@ -191,7 +191,7 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsura
   useEffect(() => {
     if (selectedDot) {
       const carrier = carriers.find(c => c.dotNumber === selectedDot);
-      setActiveInsurance(carrier?.activeInsuranceFilings || []);
+      setActiveInsurance(carrier?.insuranceHistoryFilings || []);
     } else {
       setActiveInsurance([]);
     }
@@ -737,32 +737,40 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsura
                 <div className="bg-slate-850/40 p-8 rounded-[2rem] border border-slate-800 flex flex-col shadow-2xl">
                   <div className="flex items-center gap-3 mb-8">
                     <ShieldCheck size={20} className="text-emerald-400" />
-                    <h4 className="text-xl font-black text-white uppercase tracking-tight">Verified L&I Filings</h4>
+                    <h4 className="text-xl font-black text-white uppercase tracking-tight">Insurance History</h4>
                   </div>
                   <div className="space-y-4 flex-1 overflow-y-auto custom-scrollbar pr-2">
                     {activeInsurance.length > 0 ? (
                       activeInsurance.map((p, i) => (
-                        <div key={i} className="bg-slate-900 p-6 rounded-[1.5rem] border border-slate-800 shadow-sm group/policy hover:border-indigo-500/30 transition-all">
+                        <div key={i} className={`bg-slate-900 p-6 rounded-[1.5rem] border shadow-sm group/policy hover:border-indigo-500/30 transition-all ${p.canclEffectiveDate ? 'border-red-800/40' : 'border-slate-800'}`}>
                           <div className="flex justify-between items-start mb-4">
-                            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest border border-indigo-500/10 px-2 py-0.5 rounded-lg">{p.type} FILING</span>
-                            <span className="text-xl font-black text-white">{p.coverageAmount}</span>
+                            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest border border-indigo-500/10 px-2 py-0.5 rounded-lg">{p.type}</span>
+                            <div className="flex items-center gap-2">
+                              <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-lg ${p.canclEffectiveDate ? 'text-red-400 bg-red-500/10 border border-red-500/20' : 'text-emerald-400 bg-emerald-500/10 border border-emerald-500/20'}`}>{p.status}</span>
+                              <span className="text-xl font-black text-white">{p.coverageAmount}</span>
+                            </div>
                           </div>
                           <p className="text-sm font-black text-slate-200 mb-4 truncate leading-tight group-hover/policy:text-indigo-300 transition-colors uppercase">{p.carrier}</p>
                           <div className="flex gap-3 mb-4">
-                            {p.class && <span className="text-[10px] font-bold text-slate-400 bg-slate-800 px-2 py-1 rounded-lg uppercase">Class: {p.class}</span>}
                             {p.formCode && <span className="text-[10px] font-bold text-slate-400 bg-slate-800 px-2 py-1 rounded-lg uppercase">Form: {p.formCode}</span>}
+                            {p.transDate && <span className="text-[10px] font-bold text-slate-400 bg-slate-800 px-2 py-1 rounded-lg uppercase">Trans: {p.transDate}</span>}
                           </div>
                           <div className="flex justify-between items-center pt-4 border-t border-slate-800/50">
                             <span className="text-sm font-bold text-white">#{p.policyNumber}</span>
                             <span className="text-sm font-bold text-white">EFF: {p.effectiveDate}</span>
                           </div>
+                          {p.canclEffectiveDate && (
+                            <div className="mt-3 pt-3 border-t border-red-800/30">
+                              <span className="text-[10px] font-bold text-red-400 uppercase">Cancelled: {p.canclEffectiveDate}</span>
+                            </div>
+                          )}
                         </div>
                       ))
                     ) : (
                       <div className="flex flex-col items-center justify-center py-20 text-slate-700 text-center">
                         <Info size={48} className="opacity-10 mb-4" />
-                        <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-2">No Active Insurance Filings</p>
-                        <p className="text-[10px] text-slate-600 max-w-[180px] leading-relaxed italic">No insurance records found in the active insurance database.</p>
+                        <p className="text-xs font-black uppercase tracking-widest text-slate-500 mb-2">No Insurance Records</p>
+                        <p className="text-[10px] text-slate-600 max-w-[180px] leading-relaxed italic">No insurance records found in the database.</p>
                       </div>
                     )}
                   </div>
