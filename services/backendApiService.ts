@@ -251,6 +251,10 @@ export interface CarrierFilters {
   towawayMax?: number;
   inspectionsMin?: number;
   inspectionsMax?: number;
+  insuranceCompany?: string[];
+  renewalPolicyMonths?: string;
+  renewalDateFrom?: string;
+  renewalDateTo?: string;
   limit?: number;
   offset?: number;
 }
@@ -301,6 +305,10 @@ export const fetchCarriersFromBackend = async (filters: CarrierFilters = {}): Pr
     if (filters.towawayMax !== undefined) params.append('toway_max', String(filters.towawayMax));
     if (filters.inspectionsMin !== undefined) params.append('inspections_min', String(filters.inspectionsMin));
     if (filters.inspectionsMax !== undefined) params.append('inspections_max', String(filters.inspectionsMax));
+    if (filters.insuranceCompany?.length) params.append('insurance_company', filters.insuranceCompany.join(','));
+    if (filters.renewalPolicyMonths) params.append('renewal_policy_months', filters.renewalPolicyMonths);
+    if (filters.renewalDateFrom) params.append('renewal_date_from', filters.renewalDateFrom);
+    if (filters.renewalDateTo) params.append('renewal_date_to', filters.renewalDateTo);
     if (filters.limit) params.append('limit', String(filters.limit));
     if (filters.offset) params.append('offset', String(filters.offset));
 
