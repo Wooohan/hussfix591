@@ -60,6 +60,7 @@ export interface CarrierData {
   entityType: string;
   status: string;
   statusCode?: string;
+  authorityStatus?: string;
   email: string;
   phone: string;
   fax?: string;
