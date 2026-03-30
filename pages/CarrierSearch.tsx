@@ -598,8 +598,8 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsura
                     </td>
                     <td className="p-4 font-mono text-slate-400">{carrier.dotNumber}</td>
                     <td className="p-4">
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-black tracking-tight border ${carrier.status?.includes('AUTHORIZED') && !carrier.status?.includes('NOT') ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
-                        {carrier.status?.includes('AUTHORIZED') && !carrier.status?.includes('NOT') ? 'ACTIVE' : 'INACTIVE'}
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-black tracking-tight border ${carrier.status === 'Active' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                        {carrier.status === 'Active' ? 'ACTIVE' : 'INACTIVE'}
                       </span>
                     </td>
                     <td className="p-4">
@@ -657,8 +657,8 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsura
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-3 mb-1">
                     <h2 className="text-lg md:text-2xl font-black text-white uppercase tracking-tighter truncate max-w-[300px] md:max-w-[700px] leading-tight">{selectedCarrier.legalName}</h2>
-                    <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border-2 ${selectedCarrier.status?.includes('NOT AUTHORIZED') ? 'bg-red-500/10 text-red-400 border-red-500/30' : 'bg-green-500/10 text-green-400 border-green-500/30'}`}>
-                      {selectedCarrier.status?.includes('NOT AUTHORIZED') ? 'Unauthorized' : 'Active Authority'}
+                    <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border-2 ${selectedCarrier.status !== 'Active' ? 'bg-red-500/10 text-red-400 border-red-500/30' : 'bg-green-500/10 text-green-400 border-green-500/30'}`}>
+                      {selectedCarrier.status === 'Active' ? 'Active Authority' : selectedCarrier.status || 'Inactive'}
                     </span>
                   </div>
                   
@@ -703,6 +703,12 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsura
                     <div className="flex flex-col"><span className="text-[9px] text-slate-500 font-black uppercase">MC/MX Number</span><span className="text-base font-black text-indigo-400 font-mono tracking-tight">{selectedCarrier.mcNumber}</span></div>
                     <div className="flex flex-col"><span className="text-[9px] text-slate-500 font-black uppercase">USDOT Number</span><span className="text-base font-black text-white font-mono tracking-tight">{selectedCarrier.dotNumber}</span></div>
                     <div className="flex flex-col"><span className="text-[9px] text-slate-500 font-black uppercase">DUNS Number</span><span className="text-sm font-bold text-slate-400">{selectedCarrier.dunsNumber || '--'}</span></div>
+                    {selectedCarrier.companyOfficer1 && (
+                      <div className="flex flex-col"><span className="text-[9px] text-slate-500 font-black uppercase">Company Officer</span><span className="text-sm font-bold text-slate-300">{selectedCarrier.companyOfficer1}</span></div>
+                    )}
+                    {selectedCarrier.companyOfficer2 && (
+                      <div className="flex flex-col"><span className="text-[9px] text-slate-500 font-black uppercase">Company Officer 2</span><span className="text-sm font-bold text-slate-300">{selectedCarrier.companyOfficer2}</span></div>
+                    )}
                   </div>
                 </div>
                 <div className="bg-slate-850/60 p-6 rounded-3xl border border-slate-700/50 space-y-4 shadow-lg group">
@@ -764,13 +770,23 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsura
                       </p>
                     </div>
                     <div>
-                      <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Operating Territory</h5>
+                      <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Carrier Operation</h5>
                       <div className="flex flex-wrap gap-2">
                         {selectedCarrier.carrierOperation?.map((op, idx) => (
                           <span key={idx} className="bg-indigo-500/10 text-indigo-300 px-3 py-1 rounded-lg border border-indigo-500/20 font-bold text-[10px] uppercase">{op}</span>
                         ))}
                       </div>
                     </div>
+                    {selectedCarrier.operatingTerritory && selectedCarrier.operatingTerritory.length > 0 && (
+                      <div>
+                        <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Operating Territory</h5>
+                        <div className="flex flex-wrap gap-2">
+                          {selectedCarrier.operatingTerritory.map((t, idx) => (
+                            <span key={idx} className="bg-purple-500/10 text-purple-300 px-3 py-1 rounded-lg border border-purple-500/20 font-bold text-[10px] uppercase">{t}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                     <div>
                       <h5 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-2">Cargo Carried</h5>
                       <div className="grid grid-cols-1 gap-2">
@@ -782,8 +798,8 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsura
                         ))}
                       </div>
                     </div>
-                    <div className={`w-full py-4 rounded-2xl flex items-center justify-center font-black tracking-widest text-xs border-2 ${selectedCarrier.cargoCarried?.some(c => c.toLowerCase().includes('haz')) ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
-                      {selectedCarrier.cargoCarried?.some(c => c.toLowerCase().includes('haz')) ? 'HAZMAT INDICATOR: YES' : 'HAZMAT INDICATOR: NON-HAZMAT'}
+                    <div className={`w-full py-4 rounded-2xl flex items-center justify-center font-black tracking-widest text-xs border-2 ${selectedCarrier.hmInd === 'Y' ? 'bg-red-500/10 text-red-400 border-red-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
+                      {selectedCarrier.hmInd === 'Y' ? 'HAZMAT INDICATOR: YES' : 'HAZMAT INDICATOR: NON-HAZMAT'}
                     </div>
                     <div className="h-px bg-slate-800/50 my-2" />
                     <div>
@@ -797,6 +813,24 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsura
                           <span className="text-[9px] text-slate-500 font-black uppercase mb-1">Drivers</span>
                           <span className="text-lg font-black text-white">{selectedCarrier.drivers || '0'}</span>
                         </div>
+                        {selectedCarrier.truckUnits && (
+                          <div className="bg-slate-900/50 border border-slate-800 p-3 rounded-xl flex flex-col items-center">
+                            <span className="text-[9px] text-slate-500 font-black uppercase mb-1">Truck Units</span>
+                            <span className="text-lg font-black text-white">{selectedCarrier.truckUnits}</span>
+                          </div>
+                        )}
+                        {selectedCarrier.busUnits && (
+                          <div className="bg-slate-900/50 border border-slate-800 p-3 rounded-xl flex flex-col items-center">
+                            <span className="text-[9px] text-slate-500 font-black uppercase mb-1">Bus Units</span>
+                            <span className="text-lg font-black text-white">{selectedCarrier.busUnits}</span>
+                          </div>
+                        )}
+                        {selectedCarrier.fleetsize && (
+                          <div className="bg-slate-900/50 border border-slate-800 p-3 rounded-xl flex flex-col items-center col-span-2">
+                            <span className="text-[9px] text-slate-500 font-black uppercase mb-1">Fleet Size</span>
+                            <span className="text-lg font-black text-white">{selectedCarrier.fleetsize}</span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
