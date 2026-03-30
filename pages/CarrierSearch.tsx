@@ -154,7 +154,8 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsura
   const [filteredCount, setFilteredCount] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
   
-  const PAGE_SIZE = 200;
+  const PAGE_SIZE_OPTIONS = [100, 200, 500, 1000];
+  const [pageSize, setPageSize] = useState(500);
   const [currentPage, setCurrentPage] = useState(0);
   const [mcSearchTerm, setMcSearchTerm] = useState('');
   const [nameSearchTerm, setNameSearchTerm] = useState('');
@@ -226,10 +227,11 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsura
       setActiveInsurance([]);
     }
   }, [selectedDot, carriers]);
-  const loadCarriers = async (f: CarrierFiltersSupabase, page = 0) => {
+  const loadCarriers = async (f: CarrierFiltersSupabase, page = 0, ps?: number) => {
     setIsLoading(true);
+    const size = ps ?? pageSize;
     try {
-      const result = await fetchCarriersFromSupabase({ ...f, limit: PAGE_SIZE, offset: page * PAGE_SIZE });
+      const result = await fetchCarriersFromSupabase({ ...f, limit: size, offset: page * size });
       setCarriers(result.data);
       setCurrentPage(page);
       setFilteredCount(result.filtered_count);
@@ -625,10 +627,32 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsura
       
       {!isLoading && carriers.length > 0 && (
         <div className="flex items-center justify-between mt-3 px-2">
-          <p className="text-xs text-white font-bold">
-            Page {currentPage + 1} · Showing {currentPage * PAGE_SIZE + 1}–{currentPage * PAGE_SIZE + carriers.length}{filteredCount > 0 ? ` of ${filteredCount.toLocaleString()}` : (totalCount > 0 ? ` of ${totalCount.toLocaleString()}` : '')}
-          </p>
+          <div className="flex items-center gap-3">
+            <p className="text-xs text-white font-bold">
+              Page {currentPage + 1}{filteredCount > 0 ? ` of ${Math.ceil(filteredCount / pageSize).toLocaleString()}` : ''} · Showing {(currentPage * pageSize + 1).toLocaleString()}–{(currentPage * pageSize + carriers.length).toLocaleString()}{filteredCount > 0 ? ` of ${filteredCount.toLocaleString()}` : (totalCount > 0 ? ` of ${totalCount.toLocaleString()}` : '')}
+            </p>
+            <select
+              value={pageSize}
+              onChange={(e) => {
+                const newSize = parseInt(e.target.value);
+                setPageSize(newSize);
+                loadCarriers(buildFilters(), 0, newSize);
+              }}
+              className="bg-slate-800 border border-slate-700 rounded-lg px-2 py-1 text-xs text-white outline-none focus:border-indigo-500"
+            >
+              {PAGE_SIZE_OPTIONS.map(s => (
+                <option key={s} value={s}>{s} / page</option>
+              ))}
+            </select>
+          </div>
           <div className="flex gap-2">
+            <button
+              onClick={() => goToPage(0)}
+              disabled={currentPage === 0}
+              className="px-3 py-1.5 text-xs font-bold rounded-xl bg-slate-800 text-white border border-slate-700 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+            >
+              First
+            </button>
             <button
               onClick={() => goToPage(currentPage - 1)}
               disabled={currentPage === 0}
@@ -638,7 +662,7 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsura
             </button>
             <button
               onClick={() => goToPage(currentPage + 1)}
-              disabled={carriers.length < PAGE_SIZE}
+              disabled={carriers.length < pageSize}
               className="px-3 py-1.5 text-xs font-bold rounded-xl bg-slate-800 text-white border border-slate-700 hover:bg-slate-700 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             >
               Next
