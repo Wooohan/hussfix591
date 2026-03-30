@@ -249,6 +249,7 @@ export const fetchCarriersFromSupabase = async (filters: CarrierFiltersSupabase 
       entityType: record.entity_type,
       status: record.status,
       statusCode: record.status_code,
+      authorityStatus: record.authority_status,
       email: record.email,
       phone: record.phone,
       fax: record.fax,
