@@ -598,8 +598,8 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsura
                     </td>
                     <td className="p-4 font-mono text-slate-400">{carrier.dotNumber}</td>
                     <td className="p-4">
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-black tracking-tight border ${carrier.status === 'Active' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
-                        {carrier.status === 'Active' ? 'ACTIVE' : 'INACTIVE'}
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-black tracking-tight border ${carrier.authorityStatus === 'AUTHORIZED' ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-red-500/10 text-red-400 border-red-500/20'}`}>
+                        {carrier.authorityStatus === 'AUTHORIZED' ? 'AUTHORIZED' : carrier.authorityStatus || 'NOT AUTH'}
                       </span>
                     </td>
                     <td className="p-4">
@@ -657,8 +657,11 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsura
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-3 mb-1">
                     <h2 className="text-lg md:text-2xl font-black text-white uppercase tracking-tighter truncate max-w-[300px] md:max-w-[700px] leading-tight">{selectedCarrier.legalName}</h2>
-                    <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border-2 ${selectedCarrier.status !== 'Active' ? 'bg-red-500/10 text-red-400 border-red-500/30' : 'bg-green-500/10 text-green-400 border-green-500/30'}`}>
-                      {selectedCarrier.status === 'Active' ? 'Active Authority' : selectedCarrier.status || 'Inactive'}
+                    <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border-2 ${selectedCarrier.authorityStatus === 'AUTHORIZED' ? 'bg-green-500/10 text-green-400 border-green-500/30' : 'bg-red-500/10 text-red-400 border-red-500/30'}`}>
+                      {selectedCarrier.authorityStatus === 'AUTHORIZED' ? 'Authorized' : selectedCarrier.authorityStatus || 'Not Authorized'}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest border-2 ${selectedCarrier.status === 'Active' ? 'bg-blue-500/10 text-blue-400 border-blue-500/30' : 'bg-slate-500/10 text-slate-400 border-slate-500/30'}`}>
+                      USDOT: {selectedCarrier.status || 'Inactive'}
                     </span>
                   </div>
                   
