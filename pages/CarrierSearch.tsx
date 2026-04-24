@@ -3,6 +3,7 @@ import { Search, Eye, X, MapPin, Phone, Mail, Hash, Truck, Calendar, ShieldCheck
 import { CarrierData, InsuranceHistoryFiling } from '../types';
 import { downloadCSV } from '../services/mockService';
 import { fetchCarriersFromSupabase, getCarrierCountFromSupabase, CarrierFiltersSupabase } from '../services/supabaseClient';
+import { fetchSafetyByDot } from '../services/backendApiService';
 interface CarrierSearchProps {
   onNavigateToInsurance: () => void;
 }
@@ -166,6 +167,8 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsura
   const [expandedInspection, setExpandedInspection] = useState<string | null>(null);
   const [expandedCrash, setExpandedCrash] = useState<string | null>(null);
   const [activeInsurance, setActiveInsurance] = useState<InsuranceHistoryFiling[]>([]);
+  const [safetyData, setSafetyData] = useState<any | null>(null);
+  const [safetyLoading, setSafetyLoading] = useState(false);
   const [filters, setFilters] = useState({
     entityType: '',
     active: '',
@@ -224,8 +227,16 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsura
     if (selectedDot) {
       const carrier = carriers.find(c => c.dotNumber === selectedDot);
       setActiveInsurance(carrier?.insuranceHistoryFilings || []);
+      // Fetch safety data from the safety table
+      setSafetyData(null);
+      setSafetyLoading(true);
+      fetchSafetyByDot(selectedDot).then((data) => {
+        setSafetyData(data);
+        setSafetyLoading(false);
+      }).catch(() => setSafetyLoading(false));
     } else {
       setActiveInsurance([]);
+      setSafetyData(null);
     }
   }, [selectedDot, carriers]);
   const loadCarriers = async (f: CarrierFiltersSupabase, page = 0, ps?: number) => {
@@ -937,34 +948,44 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsura
                       <ExternalLink size={12} /> View FMCSA Source
                     </a>
                   </div>
-                  {selectedCarrier.safetyRating && selectedCarrier.safetyRating !== 'N/A' ? (
+                  {safetyLoading ? (
+                    <div className="flex-1 flex flex-col items-center justify-center py-20 text-slate-700 text-center space-y-4">
+                      <Loader2 size={32} className="animate-spin text-indigo-400" />
+                      <p className="text-xs font-black text-slate-500 uppercase tracking-widest">Loading Safety Data...</p>
+                    </div>
+                  ) : safetyData ? (
                     <div className="space-y-8 animate-in fade-in duration-500">
                       <div className="flex justify-between items-start">
                         <div className="space-y-4">
-                          <h5 className="text-xs font-bold text-slate-100">Safety Rating</h5>
-                          <div className="flex items-center gap-4">
-                            <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
-                              <CheckCircle2 size={24} />
+                          <h5 className="text-xs font-bold text-slate-100">Inspection Summary</h5>
+                          <div className="grid grid-cols-3 gap-4">
+                            <div className="bg-slate-800/50 p-3 rounded-xl text-center">
+                              <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Total Insp.</span>
+                              <span className="text-lg font-black text-white">{safetyData.insp_total}</span>
                             </div>
-                            <div>
-                              <p className="text-sm font-black text-slate-200 leading-tight uppercase">{selectedCarrier.safetyRating}</p>
-                              <p className="text-[11px] text-slate-500 font-medium font-mono">ENRICHED: {selectedCarrier.safetyRatingDate}</p>
+                            <div className="bg-slate-800/50 p-3 rounded-xl text-center">
+                              <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Driver Insp.</span>
+                              <span className="text-lg font-black text-white">{safetyData.driver_insp_total}</span>
+                            </div>
+                            <div className="bg-slate-800/50 p-3 rounded-xl text-center">
+                              <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Vehicle Insp.</span>
+                              <span className="text-lg font-black text-white">{safetyData.vehicle_insp_total}</span>
                             </div>
                           </div>
                         </div>
                         <div className="flex-1 max-w-[180px] space-y-4">
                           <div className="space-y-1">
                             <h5 className="text-xs font-bold text-slate-100">OOS Rates</h5>
-                            <p className="text-[9px] text-slate-500 font-mono tracking-tighter uppercase">Last 24 Months Activity</p>
+                            <p className="text-[9px] text-slate-500 font-mono tracking-tighter uppercase">Driver & Vehicle</p>
                           </div>
-                          {selectedCarrier.oosRates?.map((oos, idx) => (
+                          {safetyData.oos_rates?.map((oos: any, idx: number) => (
                             <div key={idx} className="space-y-1">
                               <div className="flex justify-between text-[10px] font-black uppercase">
                                 <span className="text-slate-500 truncate mr-2">{oos.type}</span>
                                 <span className="text-emerald-400">{oos.rate}</span>
                               </div>
                               <div className="w-full bg-slate-800/50 rounded-full h-1 relative overflow-hidden">
-                                <div className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full" style={{ width: `${parseFloat(oos.rate) || 0}%` }} />
+                                <div className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full" style={{ width: `${Math.min(parseFloat(oos.rate) || 0, 100)}%` }} />
                               </div>
                             </div>
                           ))}
@@ -973,11 +994,16 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsura
                       <div className="h-px bg-slate-800/50" />
                       <div className="space-y-4">
                         <h5 className="text-xs font-black text-slate-100 uppercase tracking-widest opacity-80">BASIC Performance</h5>
-                        <div className="grid grid-cols-2 gap-x-8 gap-y-3">
-                          {selectedCarrier.basicScores?.map((score, idx) => (
+                        <div className="grid grid-cols-1 gap-y-3">
+                          {safetyData.basic_scores?.map((score: any, idx: number) => (
                             <div key={idx} className="flex justify-between items-center text-xs">
-                              <span className="text-slate-500 truncate max-w-[120px]">{score.category}</span>
-                              <span className="text-slate-300 font-bold font-mono">{score.measure}</span>
+                              <span className="text-slate-500 truncate max-w-[160px]">{score.category}</span>
+                              <div className="flex items-center gap-3">
+                                <span className="text-slate-300 font-bold font-mono">{score.measure}</span>
+                                {score.alert && score.alert !== '' && (
+                                  <span className="bg-red-500/20 text-red-400 px-2 py-0.5 rounded text-[9px] font-black uppercase">{score.alert}</span>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>
@@ -986,8 +1012,8 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsura
                   ) : (
                     <div className="flex-1 flex flex-col items-center justify-center py-20 text-slate-700 text-center space-y-4">
                       <div className="p-6 bg-slate-800/30 rounded-full"><ShieldAlert size={48} className="opacity-20 text-indigo-500" /></div>
-                      <p className="text-xs font-black text-slate-500 uppercase tracking-widest">Record Not Enriched</p>
-                      <button onClick={() => { setSelectedDot(null); onNavigateToInsurance(); }} className="text-[10px] font-black text-indigo-400 hover:text-white uppercase transition-colors bg-indigo-500/5 px-4 py-2 rounded-lg border border-indigo-500/10">Launch Pipeline now</button>
+                      <p className="text-xs font-black text-slate-500 uppercase tracking-widest">No Safety Data Available</p>
+                      <a href={`https://ai.fmcsa.dot.gov/SMS/Carrier/${selectedCarrier.dotNumber}/CompleteProfile.aspx`} target="_blank" className="text-[10px] font-black text-indigo-400 hover:text-white uppercase transition-colors bg-indigo-500/5 px-4 py-2 rounded-lg border border-indigo-500/10">View on FMCSA</a>
                     </div>
                   )}
                 </div>
