@@ -880,3 +880,17 @@ export const fetchInsuranceHistory = async (docketNumber: string): Promise<Insur
     return [];
   }
 };
+
+export const fetchSafetyByDot = async (dotNumber: string): Promise<any | null> => {
+  try {
+    const response = await fetch(`${BACKEND_URL}/api/safety/${dotNumber}`, {
+      headers: authHeadersGet(),
+    });
+    if (response.status === 404) return null;
+    const data = await handleResponse(response);
+    return data;
+  } catch (err: any) {
+    console.error('Backend fetch safety error:', err);
+    return null;
+  }
+};
