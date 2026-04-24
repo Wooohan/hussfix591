@@ -32,13 +32,26 @@ export interface Inspection {
   violationList: InspectionViolation[];
 }
 export interface Crash {
-  date: string;
-  number: string;
-  state: string;
-  plateNumber: string;
-  plateState: string;
-  fatal: string;
-  injuries: string;
+  report_number: string;
+  report_date: string;
+  report_state: string;
+  dot_number: string;
+  fatalities: number;
+  injuries: number;
+  tow_away: boolean;
+  not_preventable: boolean;
+  weather_condition_desc: string;
+  vehicle_id_number: string;
+  vehicle_license_number: string;
+  vehicle_license_state: string;
+  report_seq_no: number;
+  hazmat_released: boolean;
+  trafficway_desc: string;
+  access_control_desc: string;
+  road_surface_condition_desc: string;
+  light_condition_desc: string;
+  citation_issued_desc: string;
+  seq_num: number;
 }
 export interface InsuranceHistoryFiling {
   type: string;
