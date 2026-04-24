@@ -953,67 +953,127 @@ export const CarrierSearch: React.FC<CarrierSearchProps> = ({ onNavigateToInsura
                       <Loader2 size={32} className="animate-spin text-indigo-400" />
                       <p className="text-xs font-black text-slate-500 uppercase tracking-widest">Loading Safety Data...</p>
                     </div>
-                  ) : safetyData ? (
+                  ) : safetyData ? (() => {
+                    const NATIONAL_AVG: Record<string, number> = { Driver: 6.7, Vehicle: 23.4, Hazmat: 4.4 };
+                    const getOosStyle = (rate: number, type: string) => {
+                      const avg = NATIONAL_AVG[type] || 10;
+                      if (rate <= avg) return { bar: 'bg-emerald-500', text: 'text-emerald-400', label: 'Satisfactory', badge: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' };
+                      if (rate <= avg * 2) return { bar: 'bg-yellow-500', text: 'text-yellow-400', label: 'Average', badge: 'bg-yellow-500/15 text-yellow-400 border-yellow-500/30' };
+                      return { bar: 'bg-red-500', text: 'text-red-400', label: 'Alert', badge: 'bg-red-500/15 text-red-400 border-red-500/30' };
+                    };
+                    const driverRate = safetyData.driver_oos_rate ?? 0;
+                    const vehicleRate = safetyData.vehicle_oos_rate ?? 0;
+                    const driverStyle = getOosStyle(driverRate, 'Driver');
+                    const vehicleStyle = getOosStyle(vehicleRate, 'Vehicle');
+                    return (
                     <div className="space-y-8 animate-in fade-in duration-500">
-                      <div className="flex justify-between items-start">
-                        <div className="space-y-4">
-                          <h5 className="text-xs font-bold text-slate-100">Inspection Summary</h5>
-                          <div className="grid grid-cols-3 gap-4">
-                            <div className="bg-slate-800/50 p-3 rounded-xl text-center">
-                              <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Total Insp.</span>
-                              <span className="text-lg font-black text-white">{safetyData.insp_total}</span>
-                            </div>
-                            <div className="bg-slate-800/50 p-3 rounded-xl text-center">
-                              <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Driver Insp.</span>
-                              <span className="text-lg font-black text-white">{safetyData.driver_insp_total}</span>
-                            </div>
-                            <div className="bg-slate-800/50 p-3 rounded-xl text-center">
-                              <span className="text-[10px] font-bold text-slate-500 uppercase block mb-1">Vehicle Insp.</span>
-                              <span className="text-lg font-black text-white">{safetyData.vehicle_insp_total}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex-1 max-w-[180px] space-y-4">
-                          <div className="space-y-1">
-                            <h5 className="text-xs font-bold text-slate-100">OOS Rates</h5>
-                            <p className="text-[9px] text-slate-500 font-mono tracking-tighter uppercase">Driver & Vehicle</p>
-                          </div>
-                          {safetyData.oos_rates?.map((oos: any, idx: number) => (
-                            <div key={idx} className="space-y-1">
-                              <div className="flex justify-between text-[10px] font-black uppercase">
-                                <span className="text-slate-500 truncate mr-2">{oos.type}</span>
-                                <span className="text-emerald-400">{oos.rate}</span>
+                      {/* Safety Rating */}
+                      <div className="space-y-4">
+                        <h5 className="text-xs font-bold text-slate-100">Safety Rating</h5>
+                        <div className="flex items-center gap-4">
+                          {selectedCarrier.safetyRating && selectedCarrier.safetyRating !== 'N/A' ? (
+                            <>
+                              <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.2)]">
+                                <CheckCircle2 size={24} />
                               </div>
-                              <div className="w-full bg-slate-800/50 rounded-full h-1 relative overflow-hidden">
-                                <div className="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 rounded-full" style={{ width: `${Math.min(parseFloat(oos.rate) || 0, 100)}%` }} />
+                              <div>
+                                <p className="text-sm font-black text-slate-200 leading-tight uppercase">{selectedCarrier.safetyRating}</p>
+                                <p className="text-[11px] text-slate-500 font-medium font-mono">Date: {selectedCarrier.safetyRatingDate || 'Not Available'}</p>
                               </div>
-                            </div>
-                          ))}
+                            </>
+                          ) : (
+                            <>
+                              <div className="w-10 h-10 rounded-full bg-slate-700/30 border border-slate-600/30 flex items-center justify-center text-slate-500">
+                                <ShieldAlert size={24} />
+                              </div>
+                              <div>
+                                <p className="text-sm font-black text-slate-400 leading-tight">No safety rating available</p>
+                                <p className="text-[11px] text-slate-500 font-medium font-mono">Date: Not Available</p>
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
+
                       <div className="h-px bg-slate-800/50" />
+
+                      {/* Out of Service Rates */}
+                      <div className="space-y-5">
+                        <div>
+                          <h5 className="text-xs font-bold text-slate-100">Out of Service Rates</h5>
+                          <p className="text-[9px] text-slate-500 font-mono tracking-tighter uppercase mt-1">Based on % of inspections in the last 24 months</p>
+                        </div>
+
+                        {/* Driver OOS Rate */}
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs font-bold text-slate-300">Driver OOS Rate</span>
+                            <div className="flex items-center gap-2">
+                              <span className={`text-xs font-black ${driverStyle.text}`}>{driverRate}%</span>
+                              <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded border ${driverStyle.badge}`}>{driverStyle.label}</span>
+                            </div>
+                          </div>
+                          <div className="w-full bg-slate-800/50 rounded-full h-2 relative">
+                            <div className={`h-full rounded-full ${driverStyle.bar}`} style={{ width: `${Math.min(driverRate, 100)}%` }} />
+                            <div className="absolute top-[-2px] bottom-[-2px] w-0.5 bg-white rounded" style={{ left: `${Math.min(NATIONAL_AVG.Driver, 100)}%` }} />
+                          </div>
+                          <p className="text-[9px] text-slate-600 font-mono">National Avg: {NATIONAL_AVG.Driver}%</p>
+                        </div>
+
+                        {/* Vehicle OOS Rate */}
+                        <div className="space-y-2">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs font-bold text-slate-300">Vehicle OOS Rate</span>
+                            <div className="flex items-center gap-2">
+                              <span className={`text-xs font-black ${vehicleStyle.text}`}>{vehicleRate}%</span>
+                              <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded border ${vehicleStyle.badge}`}>{vehicleStyle.label}</span>
+                            </div>
+                          </div>
+                          <div className="w-full bg-slate-800/50 rounded-full h-2 relative">
+                            <div className={`h-full rounded-full ${vehicleStyle.bar}`} style={{ width: `${Math.min(vehicleRate, 100)}%` }} />
+                            <div className="absolute top-[-2px] bottom-[-2px] w-0.5 bg-white rounded" style={{ left: `${Math.min(NATIONAL_AVG.Vehicle, 100)}%` }} />
+                          </div>
+                          <p className="text-[9px] text-slate-600 font-mono">National Avg: {NATIONAL_AVG.Vehicle}%</p>
+                        </div>
+                      </div>
+
+                      <div className="h-px bg-slate-800/50" />
+
+                      {/* BASIC Scores - circular gauges */}
                       <div className="space-y-4">
-                        <h5 className="text-xs font-black text-slate-100 uppercase tracking-widest opacity-80">BASIC Performance</h5>
-                        <div className="grid grid-cols-1 gap-y-3">
-                          {safetyData.basic_scores?.map((score: any, idx: number) => (
-                            <div key={idx} className="flex justify-between items-center text-xs">
-                              <span className="text-slate-500 truncate max-w-[160px]">{score.category}</span>
-                              <div className="flex items-center gap-3">
-                                <span className="text-slate-300 font-bold font-mono">{score.measure}</span>
+                        <h5 className="text-xs font-black text-slate-100 uppercase tracking-widest opacity-80">BASIC Scores</h5>
+                        <div className="grid grid-cols-2 lg:grid-cols-3 gap-6">
+                          {safetyData.basic_scores?.map((score: any, idx: number) => {
+                            const val = parseFloat(score.measure) || 0;
+                            const pct = Math.min(val / 100, 1);
+                            const r = 34, circ = 2 * Math.PI * r;
+                            return (
+                              <div key={idx} className="flex flex-col items-center gap-2">
+                                <div className="relative w-20 h-20">
+                                  <svg viewBox="0 0 80 80" className="w-full h-full -rotate-90">
+                                    <circle cx="40" cy="40" r={r} fill="none" stroke="rgba(51,65,85,0.5)" strokeWidth="5" />
+                                    <circle cx="40" cy="40" r={r} fill="none" stroke={score.alert ? '#ef4444' : '#6366f1'} strokeWidth="5" strokeDasharray={`${pct * circ} ${circ}`} strokeLinecap="round" />
+                                  </svg>
+                                  <div className="absolute inset-0 flex items-center justify-center">
+                                    <span className="text-white font-black text-sm">{score.measure}</span>
+                                  </div>
+                                </div>
+                                <span className="text-[10px] font-bold text-slate-400 text-center leading-tight">{score.category}</span>
                                 {score.alert && score.alert !== '' && (
-                                  <span className="bg-red-500/20 text-red-400 px-2 py-0.5 rounded text-[9px] font-black uppercase">{score.alert}</span>
+                                  <span className="bg-red-500/20 text-red-400 px-2 py-0.5 rounded text-[8px] font-black uppercase">{score.alert}</span>
                                 )}
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </div>
                       </div>
                     </div>
-                  ) : (
+                    );
+                  })() : (
                     <div className="flex-1 flex flex-col items-center justify-center py-20 text-slate-700 text-center space-y-4">
                       <div className="p-6 bg-slate-800/30 rounded-full"><ShieldAlert size={48} className="opacity-20 text-indigo-500" /></div>
                       <p className="text-xs font-black text-slate-500 uppercase tracking-widest">No Safety Data Available</p>
-                      <a href={`https://ai.fmcsa.dot.gov/SMS/Carrier/${selectedCarrier.dotNumber}/CompleteProfile.aspx`} target="_blank" className="text-[10px] font-black text-indigo-400 hover:text-white uppercase transition-colors bg-indigo-500/5 px-4 py-2 rounded-lg border border-indigo-500/10">View on FMCSA</a>
+                      <button onClick={() => { setSelectedDot(null); onNavigateToInsurance(); }} className="text-[10px] font-black text-indigo-400 hover:text-white uppercase transition-colors bg-indigo-500/5 px-4 py-2 rounded-lg border border-indigo-500/10">Launch Pipeline now</button>
                     </div>
                   )}
                 </div>
