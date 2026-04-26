@@ -881,6 +881,42 @@ export const fetchInsuranceHistory = async (docketNumber: string): Promise<Insur
   }
 };
 
+export const fetchInspectionsByDot = async (
+  dotNumber: string,
+  limit: number = 10,
+  offset: number = 0,
+): Promise<{ inspections: any[]; total: number }> => {
+  try {
+    const response = await fetch(
+      `${BACKEND_URL}/api/inspections/by-dot/${dotNumber}?limit=${limit}&offset=${offset}`,
+      { headers: authHeadersGet() },
+    );
+    const data = await handleResponse(response);
+    return { inspections: data.inspections || [], total: data.total || 0 };
+  } catch (err: any) {
+    console.error('Backend fetch inspections error:', err);
+    return { inspections: [], total: 0 };
+  }
+};
+
+export const fetchCrashesByDot = async (
+  dotNumber: string,
+  limit: number = 10,
+  offset: number = 0,
+): Promise<{ crashes: any[]; total: number }> => {
+  try {
+    const response = await fetch(
+      `${BACKEND_URL}/api/crashes/by-dot/${dotNumber}?limit=${limit}&offset=${offset}`,
+      { headers: authHeadersGet() },
+    );
+    const data = await handleResponse(response);
+    return { crashes: data.crashes || [], total: data.total || 0 };
+  } catch (err: any) {
+    console.error('Backend fetch crashes error:', err);
+    return { crashes: [], total: 0 };
+  }
+};
+
 export const fetchSafetyByDot = async (dotNumber: string): Promise<any | null> => {
   try {
     const response = await fetch(`${BACKEND_URL}/api/safety/${dotNumber}`, {
